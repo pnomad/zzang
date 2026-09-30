@@ -4,7 +4,7 @@ import { buildCabinet, type Cabinet } from '../machine/cabinet';
 import { Claw } from '../machine/claw';
 import { Gantry } from '../machine/gantry';
 import { GEOMETRY, type MachineGeometry, type MachineSettings, type PrizeKind } from '../machine/settings';
-import { spawnPrize, removePrize, setSquish, type Prize } from '../prizes/ragdoll';
+import { spawnPrize, removePrize, setSquish, updateSquashVisual, type Prize } from '../prizes/ragdoll';
 import { touchingHandles } from './analysis';
 import { PRIZES } from '../prizes/shapes';
 
@@ -139,6 +139,7 @@ export class Rig {
       let k = p.squish + (target - p.squish) * Math.min(1, dt * rate);
       if (Math.abs(k - 1) < 0.003) k = 1;
       setSquish(p, k);
+      updateSquashVisual(p);
     }
   }
 

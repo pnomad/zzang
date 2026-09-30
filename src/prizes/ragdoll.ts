@@ -21,6 +21,8 @@ export interface Prize {
   squishParts: { col: RAPIER.Collider; shape: Shape; pos: V3 }[];
   /** 몸통에 붙은 부위 관절 (찌그러지면 관절 위치도 당긴다) */
   joints: { joint: RAPIER.ImpulseJoint; anchor: V3 }[];
+  /** 몸통 겉모습만 담은 노드 (눌리면 수직 방향으로 납작해진다) */
+  squashNode: THREE.Group;
 }
 
 let nextId = 1;
@@ -53,6 +55,11 @@ export function spawnPrize(
       .setCcdEnabled(def.size < 0.05),
   );
   const m = attachParts(world, main, parts, { ...common, mass: def.mass - limbMass });
+  // 몸통 메시를 한 겹 더 감싸서, 눌렸을 때 이 노드만 납작하게 만든다
+  const squashNode = new THREE.Group();
+  squashNode.matrixAutoUpdate = false;
+  squashNode.add(...m.group.children);
+  m.group.add(squashNode);
   scene.add(m.group);
 
   const solid = parts.filter((p) => !p.visualOnly);
@@ -63,6 +70,7 @@ export function spawnPrize(
     pressHold: 0,
     squishParts: m.colliders.map((col, i) => ({ col, shape: shrinkShape(solid[i].shape, common.core), pos: solid[i].pos ?? [0, 0, 0] })),
     joints: [],
+    squashNode,
   };
 
   for (const limb of limbs) {
@@ -118,7 +126,38 @@ export function setSquish(p: Prize, k: number) {
   if (k === p.squish || (Math.abs(k - p.squish) < 0.004 && k !== 1)) return;
   p.squish = k;
   for (const sp of p.squishParts) resizeCollider(sp.col, sp.shape, sp.pos, k);
-  p.synced[0].obj.scale.setScalar(k);
   for (const j of p.joints) j.joint.setAnchor1({ x: j.anchor[0] * k, y: j.anchor[1] * k, z: j.anchor[2] * k });
   p.main.wakeUp();
 }
+
+const UP = new THREE.Vector3(0, 1, 0);
+/**
+ * 눌린 겉모습: 위에서 누르므로 (인형이 어떻게 누워 있든) 세상 기준 수직 방향으로 납작해지고 옆으로 살짝 퍼진다.
+ * 충돌 모양은 setSquish가 고르게 줄이고, 겉모습은 이렇게 따로 보여 준다. 인형이 돌 수 있어 매 스텝 갱신한다.
+ */
+export function updateSquashVisual(p: Prize) {
+  const node = p.squashNode;
+  const k = p.squish;
+  if (k >= 1) {
+    if (!node.matrix.equals(IDENTITY)) { node.matrix.identity(); node.matrixWorldNeedsUpdate = true; }
+    return;
+  }
+  const r = p.main.rotation();
+  const u = UP.clone().applyQuaternion(new THREE.Quaternion(r.x, r.y, r.z, r.w).invert()); // 몸통 기준 수직 방향
+  const side = 1 + (1 - k) * 0.3;
+  // M = side·I + (k - side)·u·uᵀ  (u 방향으로는 k배, 옆으로는 side배)
+  const d = k - side;
+  node.matrix.set(
+    side + d * u.x * u.x, d * u.x * u.y, d * u.x * u.z, 0,
+    d * u.y * u.x, side + d * u.y * u.y, d * u.y * u.z, 0,
+    d * u.z * u.x, d * u.z * u.y, side + d * u.z * u.z, 0,
+    0, 0, 0, 1,
+  );
+  // 바닥에 닿은 쪽(무게중심에서 수직 아래)을 기준으로 눌리게: M' = T(piv)·M·T(-piv)
+  const c = p.main.localCom();
+  const piv = new THREE.Vector3(c.x, c.y, c.z).addScaledVector(u, -p.def.size * 0.9);
+  const moved = piv.clone().applyMatrix4(node.matrix);
+  node.matrix.setPosition(piv.sub(moved));
+  node.matrixWorldNeedsUpdate = true;
+}
+const IDENTITY = new THREE.Matrix4();
