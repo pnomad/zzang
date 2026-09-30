@@ -224,6 +224,12 @@ export class Claw {
     this.cable.addTorque(tau, true);
   }
 
+  /** 집게(본체+발)의 무게 (N): 경품 위에 얹혀 누르는 힘 */
+  get weight() { return this.hangMass * 9.81; }
+
+  /** 줄이 느슨함 = 집게가 무언가 위에 얹혀 자기 무게로 누르는 중 */
+  get resting() { return this.cableLength - this.actualLength() > this.L * 0.05; }
+
   /** 집게가 지금 향한 방향 (수직축 회전, rad) */
   yaw(): number {
     const v = new THREE.Vector3(1, 0, 0).applyQuaternion(toQuat(this.hub.rotation()));

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RAPIER, GROUP_PRIZE, type Synced } from '../physics/world';
-import { attachParts } from '../physics/parts';
+import { attachParts, resizeCollider, shrinkShape, type Shape, type V3 } from '../physics/parts';
 import { PRIZES, type PrizeDef } from './shapes';
 import type { PrizeKind } from '../machine/settings';
 
@@ -13,6 +13,14 @@ export interface Prize {
   colliders: RAPIER.Collider[];
   synced: Synced[];
   won: boolean;
+  /** 눌린 정도: 1 = 원래 크기, 작을수록 찌그러짐 (인형만) */
+  squish: number;
+  /** 마지막으로 눌린 뒤 남은 시간 (접촉이 잠깐 끊겨도 눌린 채로 둔다) */
+  pressHold: number;
+  /** 찌그러질 때 크기를 바꿀 몸통 충돌체들과 원래 모양 */
+  squishParts: { col: RAPIER.Collider; shape: Shape; pos: V3 }[];
+  /** 몸통에 붙은 부위 관절 (찌그러지면 관절 위치도 당긴다) */
+  joints: { joint: RAPIER.ImpulseJoint; anchor: V3 }[];
 }
 
 let nextId = 1;
@@ -47,9 +55,14 @@ export function spawnPrize(
   const m = attachParts(world, main, parts, { ...common, mass: def.mass - limbMass });
   scene.add(m.group);
 
+  const solid = parts.filter((p) => !p.visualOnly);
   const prize: Prize = {
     id: nextId++, def, main, bodies: [main], colliders: [...m.colliders],
     synced: [{ body: main, obj: m.group }], won: false,
+    squish: 1,
+    pressHold: 0,
+    squishParts: m.colliders.map((col, i) => ({ col, shape: shrinkShape(solid[i].shape, common.core), pos: solid[i].pos ?? [0, 0, 0] })),
+    joints: [],
   };
 
   for (const limb of limbs) {
@@ -72,6 +85,7 @@ export function spawnPrize(
     joint.setContactsEnabled(false);
     joint.setLimits(limb.limits[0], limb.limits[1]);
     joint.configureMotorPosition(0, limb.stiffness, limb.damping);
+    prize.joints.push({ joint, anchor: limb.anchor });
     prize.bodies.push(body);
     prize.colliders.push(...l.colliders);
     prize.synced.push({ body, obj: l.group });
@@ -96,4 +110,15 @@ export function prizeCenterOfMass(p: Prize): THREE.Vector3 {
     total += m;
   }
   return c.divideScalar(total || 1);
+}
+
+/** 인형을 k배로 찌그러뜨린다 (몸통 충돌체·겉모습·부위 관절 위치를 같이) */
+export function setSquish(p: Prize, k: number) {
+  // 조금씩 바뀔 때는 건너뛰되, 원래 크기로 돌아가는 마지막 한 번은 꼭 적용한다
+  if (k === p.squish || (Math.abs(k - p.squish) < 0.004 && k !== 1)) return;
+  p.squish = k;
+  for (const sp of p.squishParts) resizeCollider(sp.col, sp.shape, sp.pos, k);
+  p.synced[0].obj.scale.setScalar(k);
+  for (const j of p.joints) j.joint.setAnchor1({ x: j.anchor[0] * k, y: j.anchor[1] * k, z: j.anchor[2] * k });
+  p.main.wakeUp();
 }

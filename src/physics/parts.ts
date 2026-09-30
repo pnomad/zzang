@@ -48,6 +48,21 @@ export function shrinkShape(s: Shape, k: number): Shape {
   }
 }
 
+/** 이미 만든 충돌체를 모양 s의 k배 크기로, 위치도 강체 원점 쪽으로 k배 (인형이 눌려 줄어들 때) */
+export function resizeCollider(col: RAPIER.Collider, s: Shape, pos: V3, k: number) {
+  switch (s.type) {
+    case 'ball': col.setRadius(s.r * k); break;
+    case 'cuboid': col.setHalfExtents({ x: s.hx * k, y: s.hy * k, z: s.hz * k }); break;
+    case 'roundCuboid':
+      col.setHalfExtents({ x: (s.hx - s.br) * k, y: (s.hy - s.br) * k, z: (s.hz - s.br) * k });
+      col.setRoundRadius(s.br * k);
+      break;
+    case 'capsule': col.setHalfHeight(s.hh * k); col.setRadius(s.r * k); break;
+    case 'cylinder': col.setHalfHeight(s.hh * k); col.setRadius(s.r * k); break;
+  }
+  col.setTranslationWrtParent({ x: pos[0] * k, y: pos[1] * k, z: pos[2] * k });
+}
+
 export function colliderDesc(s: Shape): RAPIER.ColliderDesc {
   switch (s.type) {
     case 'ball': return RAPIER.ColliderDesc.ball(s.r);

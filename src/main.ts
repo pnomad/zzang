@@ -423,13 +423,16 @@ const keyMap = (e: KeyboardEvent): HoldKey | null => {
     default: return null;
   }
 };
+const GAME_KEYS = new Set([' ', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+// 캡처 단계에서 먼저 받는다: 세팅 패널 제목줄·체크박스·버튼 등에 포커스가 남아 있으면
+// 그쪽이 Space/Enter를 가로채 패널이 열리고 닫히므로, 게임 키는 여기서 막고 게임으로 보낸다
 window.addEventListener('keydown', (e) => {
-  // 세팅 패널의 숫자 입력칸에서 타이핑 중일 때만 게임 조작을 막는다.
-  // 드롭다운/버튼에 포커스가 남아 있으면 포커스를 풀어 방향키가 게임으로 가게 한다.
+  // 세팅 패널의 숫자 입력칸에서 타이핑 중일 때만 게임 조작을 막는다
   const t = e.target as HTMLElement;
   if (t instanceof HTMLInputElement && t.type !== 'checkbox' && t.type !== 'range') return;
-  if (t instanceof HTMLSelectElement || t instanceof HTMLButtonElement) {
-    if (keyMap(e) || e.key === ' ' || e.key === 'Enter') t.blur();
+  if (t !== document.body && GAME_KEYS.has(e.key)) {
+    e.stopPropagation();
+    t.blur?.();
   }
   const k = keyMap(e);
   if (k) { input[k] = true; e.preventDefault(); return; }
@@ -451,7 +454,7 @@ window.addEventListener('keydown', (e) => {
     if (replay.active) exitReplay();
     else leaveMachine();
   }
-});
+}, { capture: true });
 window.addEventListener('keyup', (e) => {
   const k = keyMap(e);
   if (k) input[k] = false;
@@ -566,6 +569,7 @@ function updatePlay(dt: number) {
       rig.claw.preStep();
       c.update(input);
       rig.world.step();
+      rig.updateSquish(DT);
       acc -= DT;
       n++;
     }

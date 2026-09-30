@@ -4,7 +4,8 @@ import { buildCabinet, type Cabinet } from '../machine/cabinet';
 import { Claw } from '../machine/claw';
 import { Gantry } from '../machine/gantry';
 import { GEOMETRY, type MachineGeometry, type MachineSettings, type PrizeKind } from '../machine/settings';
-import { spawnPrize, removePrize, type Prize } from '../prizes/ragdoll';
+import { spawnPrize, removePrize, setSquish, type Prize } from '../prizes/ragdoll';
+import { touchingHandles } from './analysis';
 import { PRIZES } from '../prizes/shapes';
 
 /** 한 대의 기계: 물리 월드 + 캐비닛 + 집게 + 갠트리 + 경품들 */
@@ -114,6 +115,33 @@ export class Rig {
     }
   }
 
+  /**
+   * 인형 눌림: 배출구에 걸친 인형 위에 집게가 얹혀 자기 무게로 누르면 인형이 찌그러지고, 힘이 빠지면 천천히 부푼다.
+   * 배출구에 걸친 인형을 위에서 눌러 밀어 넣는 "누르기"가 이것으로 된다. 매 물리 스텝마다 호출.
+   */
+  updateSquish(dt: number) {
+    const claw = this.claw;
+    const resting = claw.resting;
+    for (const p of this.prizes) {
+      if (p.won || p.def.category !== 'plush') continue;
+      // 배출구에 걸쳤거나 바로 옆에 있는 인형만 (다른 곳에서 집을 때의 말랑함은 속심 크기가 맡는다)
+      const t = p.main.translation(), c = this.cabinet, pad = p.def.size;
+      const atChute = t.x > c.chuteMin.x - pad && t.x < c.chuteMax.x + pad && t.z > c.chuteMin.y - pad && t.z < c.chuteMax.y + pad;
+      // 집게와 인형의 접촉은 스텝마다 끊겼다 이어지므로 0.3초 동안은 눌린 것으로 본다
+      if (atChute && resting && touchingHandles(this.world, p, claw.colliderHandles)) p.pressHold = 0.3;
+      else p.pressHold = Math.max(0, p.pressHold - dt);
+      const pressed = p.pressHold > 0;
+      // 인형이 클수록 같은 힘에 덜 눌린다 (최대 50%까지)
+      const full = 23 * p.def.size;
+      const target = pressed ? 1 - SOFT * Math.min(1, claw.weight / full) : 1;
+      // 눌릴 때는 빨리, 부풀 때는 천천히
+      const rate = target < p.squish ? 10 : 1.2;
+      let k = p.squish + (target - p.squish) * Math.min(1, dt * rate);
+      if (Math.abs(k - 1) < 0.003) k = 1;
+      setSquish(p, k);
+    }
+  }
+
   removePrizeObj(p: Prize) {
     removePrize(this.world, this.scene, p);
     this.prizes = this.prizes.filter((q) => q !== p);
@@ -149,6 +177,9 @@ function shuffle<T>(a: T[]) {
     [a[i], a[j]] = [a[j], a[i]];
   }
 }
+
+/** 인형이 최대로 찌그러지는 비율 */
+const SOFT = 0.5;
 
 /** 경품 구성에 맞춘 기본 집게 대기 높이: 쌓였을 때 한 개 두께(평균) × 2.5 */
 function idleTipHeight(s: MachineSettings): number {
