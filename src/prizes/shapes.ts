@@ -380,10 +380,10 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
     build: (c) => bearParts(0.38, c, false),
   },
   miniBigBear: {
-    kind: 'miniBigBear', name: '큰 미니 곰', category: 'plush', mass: 0.11, friction: 1.1, restitution: 0.04,
-    size: 0.08, stack: 0.12, machines: ['mini'], colors: [...BROWN, 0xf4a7b9],
+    kind: 'miniBigBear', name: '큰 미니 곰', category: 'plush', mass: 0.075, friction: 1.1, restitution: 0.04,
+    size: 0.065, stack: 0.1, machines: ['mini'], colors: [...BROWN, 0xf4a7b9],
     tip: '미니 기계치고 커서 집게가 다 감싸지 못해요. 팔 밑이나 목에 발을 걸어 들어 올리세요.',
-    build: (c) => bearParts(0.72, c, true),
+    build: (c) => bearParts(0.58, c, true), // 키 약 13cm: 미니 기계에서 제일 크지만 일반 곰(23cm)보다는 확실히 작게
   },
   miniRabbit: {
     kind: 'miniRabbit', name: '미니 토끼', category: 'plush', mass: 0.04, friction: 1.1, restitution: 0.05,
