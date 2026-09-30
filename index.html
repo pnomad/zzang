@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>인형뽑기 연습기</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧸</text></svg>" />
+  <style>
+    :root {
+      --bg: #17131f;
+      --panel: rgba(28, 22, 38, 0.86);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f4f1f8;
+      --muted: #b3aac2;
+      --pink: #ff4d8d;
+      --blue: #4dabf7;
+      --gold: #ffd43b;
+      --green: #51cf66;
+      --red: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+      font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif; }
+    #app { position: fixed; inset: 0; }
+    canvas#view { display: block; width: 100%; height: 100%; touch-action: none; }
+    .hud { position: absolute; pointer-events: none; }
+    .hud * { pointer-events: auto; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; backdrop-filter: blur(6px); }
+
+    #topbar { top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; max-width: min(360px, calc(100vw - 24px)); }
+    #topbar .card { padding: 10px 14px; }
+    .mode-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--blue); color: #0b1a2a; }
+    .badge.real { background: var(--red); color: #2a0b0b; }
+    .machine-name { font-size: 13px; color: var(--muted); }
+    .stats { display: grid; grid-template-columns: repeat(4, auto); gap: 2px 16px; margin-top: 6px; }
+    .stat .k { font-size: 11px; color: var(--muted); }
+    .stat .v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .spent .v { color: var(--gold); }
+
+    #status { top: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
+    #status .card { padding: 8px 18px; min-width: 180px; }
+    #phase { font-size: 18px; font-weight: 800; }
+    #timer { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    #strong { margin-top: 4px; font-size: 12px; font-weight: 800; color: var(--gold); display: none; }
+
+    #meter { right: 12px; bottom: 120px; width: 120px; padding: 10px; }
+    #meter .label { font-size: 11px; color: var(--muted); }
+    #meter .bar { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.1); overflow: hidden; margin: 4px 0 8px; }
+    #meter .fill { height: 100%; width: 0; background: var(--pink); transition: width 60ms linear; }
+    #meter .val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    #controls { bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; width: calc(100vw - 24px); }
+    .btn { border: 0; border-radius: 12px; padding: 12px 16px; font-size: 15px; font-weight: 800; cursor: pointer;
+      color: #1b1426; background: #f1ecf8; box-shadow: 0 4px 0 rgba(0,0,0,0.35); user-select: none; -webkit-user-select: none; touch-action: none; }
+    .btn:active, .btn.down { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.35); }
+    .btn.coin { background: var(--gold); }
+    .btn.arrow { width: 64px; height: 64px; font-size: 26px; border-radius: 50%; background: var(--pink); color: #fff; }
+    .btn.arrow.blue { background: var(--blue); }
+    .btn.drop { background: var(--green); }
+    .btn.ghost { background: rgba(255,255,255,0.12); color: var(--text); box-shadow: none; font-weight: 600; font-size: 13px; padding: 10px 12px; }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 52px); gap: 4px; }
+    .dpad .btn.arrow { width: 52px; height: 52px; font-size: 20px; }
+
+    #help { left: 12px; bottom: 16px; font-size: 11px; color: var(--muted); line-height: 1.6; padding: 8px 10px; }
+    #help b { color: var(--text); }
+
+    #result { inset: 0; display: none; align-items: center; justify-content: center; background: rgba(10, 6, 16, 0.55); }
+    #result.show { display: flex; }
+    #result .card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 20px; }
+    #result h2 { margin: 0 0 6px; font-size: 22px; }
+    #result h2.win { color: var(--gold); }
+    #result h2.lose { color: var(--text); }
+    #result .detail { color: var(--text); font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
+    #result ul { margin: 0 0 12px; padding-left: 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    #result .strongnote { color: var(--gold); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    #chart { width: 100%; height: 170px; display: block; background: rgba(0,0,0,0.25); border-radius: 8px; margin-bottom: 6px; }
+    .legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-bottom: 14px; flex-wrap: wrap; }
+    .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    #replay { bottom: 16px; left: 50%; transform: translateX(-50%); display: none; padding: 10px 14px; gap: 10px; align-items: center; width: min(620px, calc(100vw - 24px)); }
+    #replay.show { display: flex; }
+    #replay input[type=range] { flex: 1; min-width: 80px; }
+    #replay .phase { font-size: 12px; color: var(--muted); min-width: 80px; }
+    .speed { display: flex; gap: 4px; }
+    .speed .btn { padding: 6px 8px; font-size: 12px; }
+    .speed .btn.on { background: var(--pink); color: #fff; }
+
+    .lil-gui { --font-family: 'Malgun Gothic', system-ui, sans-serif; --width: 290px; }
+    .lil-gui.root { max-height: calc(100vh - 24px); overflow-y: auto; }
+
+    @media (max-width: 720px) {
+      #help { display: none; }
+      #topbar { top: 8px; left: 8px; max-width: calc(100vw - 150px); }
+      #topbar .card { padding: 8px 10px; }
+      .stats { grid-template-columns: repeat(2, auto); gap: 2px 12px; }
+      .stat .v { font-size: 15px; }
+      #status { top: auto; bottom: 104px; }
+      #status .card { padding: 6px 14px; min-width: 150px; }
+      #phase { font-size: 16px; }
+      #meter { bottom: auto; top: 128px; right: 8px; width: 96px; }
+      .lil-gui.root { --width: 240px; }
+      #controls { bottom: 12px; gap: 8px; }
+      .btn.arrow { width: 58px; height: 58px; }
+      .btn { padding: 10px 12px; font-size: 14px; }
+      .dpad { grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(2, 46px); }
+      .dpad .btn.arrow { width: 46px; height: 46px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="view"></canvas>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
