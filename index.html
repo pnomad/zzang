@@ -23,6 +23,7 @@
       font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif; }
     #app { position: fixed; inset: 0; }
     canvas#view { display: block; width: 100%; height: 100%; touch-action: none; }
+    canvas#lobby { position: absolute; inset: 0; display: block; touch-action: none; }
     .hud { position: absolute; pointer-events: none; }
     .hud * { pointer-events: auto; }
     .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; backdrop-filter: blur(6px); }
@@ -37,6 +38,14 @@
     .stat .k { font-size: 11px; color: var(--muted); }
     .stat .v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .spent .v { color: var(--gold); }
+    .causes { margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .causes summary { cursor: pointer; user-select: none; }
+    .cause-list { display: grid; gap: 3px; margin-top: 6px; }
+    .cause { position: relative; display: flex; justify-content: space-between; gap: 12px; padding: 2px 6px; border-radius: 4px; overflow: hidden; }
+    .cause span, .cause b { position: relative; z-index: 1; }
+    .cause b { color: var(--text); font-variant-numeric: tabular-nums; }
+    .cause i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,107,107,0.22); }
+    .cause.win i { background: rgba(81,207,102,0.28); }
 
     #status { top: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
     #status .card { padding: 8px 18px; min-width: 180px; }
@@ -44,7 +53,7 @@
     #timer { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
     #strong { margin-top: 4px; font-size: 12px; font-weight: 800; color: var(--gold); display: none; }
 
-    #meter { right: 12px; bottom: 120px; width: 120px; padding: 10px; }
+    #meter { left: 12px; bottom: 76px; width: 120px; padding: 10px; }
     #meter .label { font-size: 11px; color: var(--muted); }
     #meter .bar { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.1); overflow: hidden; margin: 4px 0 8px; }
     #meter .fill { height: 100%; width: 0; background: var(--pink); transition: width 60ms linear; }
@@ -93,14 +102,16 @@
 
     @media (max-width: 720px) {
       #help { display: none; }
-      #topbar { top: 8px; left: 8px; max-width: calc(100vw - 150px); }
+      #topbar { top: 34px; left: 8px; max-width: calc(100vw - 150px); }
       #topbar .card { padding: 8px 10px; }
       .stats { grid-template-columns: repeat(2, auto); gap: 2px 12px; }
       .stat .v { font-size: 15px; }
-      #status { top: auto; bottom: 104px; }
-      #status .card { padding: 6px 14px; min-width: 150px; }
-      #phase { font-size: 16px; }
-      #meter { bottom: auto; top: 128px; right: 8px; width: 96px; }
+      #status { top: 34px; right: 8px; left: auto; transform: none; width: 118px; }
+      #status .card { padding: 6px 8px; min-width: 0; }
+      #phase { font-size: 14px; }
+      #timer { font-size: 11px; }
+      .kbd-hint { display: none; }
+      #meter { bottom: auto; left: auto; top: 108px; right: 8px; width: 118px; }
       .lil-gui.root { --width: 240px; }
       #controls { bottom: 12px; gap: 8px; }
       .btn.arrow { width: 58px; height: 58px; }

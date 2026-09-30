@@ -23,6 +23,7 @@ export interface PrizeDef {
   friction: number;
   restitution: number;
   size: number;      // 대략 크기 (배치용 반지름, m)
+  stack: number;     // 더미에 쌓였을 때 한 개 두께 (m). 기계 천장 높이를 정할 때 쓴다
   machines: MachineKind[];
   tip: string;       // 모양별 공략 팁
   build(color: number): { parts: Part[]; limbs: LimbDef[] };
@@ -123,13 +124,13 @@ const BROWN = [0xa9744f, 0xd2a679, 0x8b5a3c, 0xf5f0e6];
 export const PRIZES: Record<PrizeKind, PrizeDef> = {
   bear: {
     kind: 'bear', name: '곰 인형', category: 'plush', mass: 0.25, friction: 1.1, restitution: 0.05,
-    size: 0.11, machines: ['regular'], colors: BROWN,
+    size: 0.11, stack: 0.15, machines: ['regular'], colors: BROWN,
     tip: '머리가 커서 무게중심이 위쪽이에요. 몸통보다 목 부분을 감싸듯 노리면 잘 안 빠져요.',
     build: (c) => bearParts(1, c, true),
   },
   rabbit: {
     kind: 'rabbit', name: '토끼 인형', category: 'plush', mass: 0.2, friction: 1.1, restitution: 0.05,
-    size: 0.1, machines: ['regular'], colors: [0xffffff, 0xf4c2d7, 0xd9d9d9, 0xe8d5b7],
+    size: 0.1, stack: 0.14, machines: ['regular'], colors: [0xffffff, 0xf4c2d7, 0xd9d9d9, 0xe8d5b7],
     tip: '긴 귀가 걸기 포인트예요. 귀 사이나 귀 밑에 발 하나가 들어가면 힘이 약해도 걸려 올라와요.',
     build: (c) => {
       const inner = 0xf7a8c4;
@@ -155,7 +156,7 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   cushion: {
     kind: 'cushion', name: '납작 쿠션', category: 'plush', mass: 0.15, friction: 0.85, restitution: 0.05,
-    size: 0.1, machines: ['regular'], colors: PASTEL,
+    size: 0.1, stack: 0.12, machines: ['regular'], colors: PASTEL,
     tip: '납작해서 발이 밑으로 잘 안 들어가요. 모서리를 노려 세우거나 밀어서 배출구 쪽으로 옮기세요.',
     build: (c) => ({
       parts: [
@@ -169,7 +170,7 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   longCat: {
     kind: 'longCat', name: '롱 고양이', category: 'plush', mass: 0.22, friction: 1.0, restitution: 0.05,
-    size: 0.15, machines: ['regular'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
+    size: 0.15, stack: 0.15, machines: ['regular'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
     tip: '길쭉해서 가운데를 잡으면 양쪽이 처져 빠져요. 머리 쪽(무거운 쪽) 1/3 지점을 노리세요.',
     build: (c) => ({
       parts: [
@@ -185,13 +186,13 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   bigBear: {
     kind: 'bigBear', name: '대형 곰', category: 'plush', mass: 0.75, friction: 1.1, restitution: 0.03,
-    size: 0.17, machines: ['regular'], colors: [0xd2a679, 0xf5f0e6],
+    size: 0.17, stack: 0.22, machines: ['regular'], colors: [0xd2a679, 0xf5f0e6],
     tip: '무거워서 들어 올리기 어려워요. 한 번에 뽑기보다 조금씩 배출구 쪽으로 끌어오는 게 현실적이에요.',
     build: (c) => bearParts(1.55, c, true),
   },
   figureBox: {
     kind: 'figureBox', name: '피규어 상자', category: 'box', mass: 0.28, friction: 0.35, restitution: 0.1,
-    size: 0.1, machines: ['regular'], colors: [0x2d6cdf, 0xd6336c, 0x2b8a3e],
+    size: 0.1, stack: 0.12, machines: ['regular'], colors: [0x2d6cdf, 0xd6336c, 0x2b8a3e],
     tip: '딱딱하고 미끄러워서 집어도 빠져요. 모서리에 발을 걸어 기울이거나 넘어뜨려 배출구로 보내세요.',
     build: (c) => ({
       parts: [{
@@ -203,7 +204,7 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   snackBox: {
     kind: 'snackBox', name: '과자 상자', category: 'box', mass: 0.12, friction: 0.4, restitution: 0.1,
-    size: 0.1, machines: ['regular'], colors: [0xf08c00, 0xe03131, 0x7048e8],
+    size: 0.1, stack: 0.08, machines: ['regular'], colors: [0xf08c00, 0xe03131, 0x7048e8],
     tip: '가볍지만 납작하고 넓어요. 긴 쪽 끝을 들어 올려 세우거나, 밀어서 떨어뜨리는 게 잘 먹혀요.',
     build: (c) => ({
       parts: [{
@@ -215,7 +216,7 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   keyring: {
     kind: 'keyring', name: '키링 인형', category: 'plush', mass: 0.035, friction: 1.0, restitution: 0.05,
-    size: 0.05, machines: ['regular', 'mini'], colors: PASTEL,
+    size: 0.05, stack: 0.06, machines: ['regular', 'mini'], colors: PASTEL,
     tip: '고리(링)가 핵심이에요. 발 끝을 고리에 걸면 힘과 상관없이 딸려 올라와요.',
     build: (c) => {
       const b = bearParts(0.42, c, false);
@@ -229,13 +230,13 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   miniDoll: {
     kind: 'miniDoll', name: '미니 인형', category: 'plush', mass: 0.06, friction: 1.05, restitution: 0.05,
-    size: 0.06, machines: ['mini'], colors: [...PASTEL, ...BROWN],
+    size: 0.06, stack: 0.09, machines: ['mini'], colors: [...PASTEL, ...BROWN],
     tip: '작고 가벼워서 집게 안에 들어오기만 하면 잘 올라와요. 머리 위를 정확히 노리세요.',
     build: (c) => bearParts(0.5, c, false),
   },
   smallBox: {
     kind: 'smallBox', name: '미니 상자', category: 'box', mass: 0.035, friction: 0.38, restitution: 0.1,
-    size: 0.04, machines: ['mini'], colors: [0x1971c2, 0xe8590c, 0x0ca678, 0xae3ec9],
+    size: 0.04, stack: 0.064, machines: ['mini'], colors: [0x1971c2, 0xe8590c, 0x0ca678, 0xae3ec9],
     tip: '미끄러운 상자예요. 세워져 있으면 넘어뜨리기, 누워 있으면 모서리를 대각선으로 잡으세요.',
     build: (c) => ({
       parts: [{
@@ -247,7 +248,7 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   capsule: {
     kind: 'capsule', name: '캡슐볼', category: 'capsule', mass: 0.035, friction: 0.22, restitution: 0.3,
-    size: 0.03, machines: ['mini'], colors: [0xff6b6b, 0x4dabf7, 0xffd43b, 0x69db7c, 0xda77f2],
+    size: 0.03, stack: 0.07, machines: ['mini'], colors: [0xff6b6b, 0x4dabf7, 0xffd43b, 0x69db7c, 0xda77f2],
     tip: '동그랗고 미끄러워서 집게가 쉽게 빠져요. 다른 캡슐 사이에 끼인 것을 노리거나 굴려서 보내세요.',
     build: (c) => {
       const r = 0.028;

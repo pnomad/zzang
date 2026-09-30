@@ -22,7 +22,7 @@ export const PLUSH_CORE = 0.8;
 
 export function spawnPrize(
   world: RAPIER.World,
-  scene: THREE.Scene,
+  scene: THREE.Object3D,
   kind: PrizeKind,
   pos: THREE.Vector3,
   rot: THREE.Quaternion,
@@ -79,7 +79,7 @@ export function spawnPrize(
   return prize;
 }
 
-export function removePrize(world: RAPIER.World, scene: THREE.Scene, p: Prize) {
+export function removePrize(world: RAPIER.World, scene: THREE.Object3D, p: Prize) {
   for (const s of p.synced) scene.remove(s.obj);
   // 관절이 붙은 부위부터 제거
   for (let i = p.bodies.length - 1; i >= 0; i--) world.removeRigidBody(p.bodies[i]);

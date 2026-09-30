@@ -58,17 +58,31 @@ export class Controller {
     this.strongTurn =
       (s.payoutMode === 'everyN' && this.payout.playsSinceWin >= s.payoutN) ||
       (s.payoutMode === 'amount' && this.payout.spentSinceWin >= s.payoutAmount);
-    this.tracker = new AttemptTracker(this.rig.world, this.rig.prizes, this.rig.claw, this.rig.cabinet, this.strongTurn);
+    this.tracker = new AttemptTracker(this.rig.world, this.rig.prizes, this.rig.claw, this.rig.cabinet, this.strongTurn,
+      (x, z) => this.zoneFactor(x, z));
     this.recorder.begin(this.rig.synced);
     this.timeLeft = s.timeLimit;
     this.go(s.controlMode === 'twoButton' ? 'moveX' : 'move');
     return true;
   }
 
-  /** 구간별 집게 힘 (0~1). 강집게 판은 모든 구간이 강집게 힘 이상. */
+  /** 배출구 앞 힘 빠짐: 집게 위치 (x, z)에서 평소 힘에 곱할 비율 (배출구 위 nearChutePower% → 멀어지면 100%) */
+  zoneFactor(x: number, z: number): number {
+    const s = this.s;
+    if (s.nearChuteRange <= 0) return 1;
+    const c = this.rig.cabinet;
+    const dx = Math.max(c.chuteMin.x - x, 0, x - c.chuteMax.x);
+    const dz = Math.max(c.chuteMin.y - z, 0, z - c.chuteMax.y);
+    const t = Math.min(1, Math.hypot(dx, dz) / s.nearChuteRange);
+    const near = s.nearChutePower / 100;
+    return near + (1 - near) * t * t * (3 - 2 * t);
+  }
+
+  /** 구간별 집게 힘 (0~1). 배출구에 가까우면 약해진다. 강집게 판은 모든 구간이 강집게 힘 이상. */
   powerFor(p: 'grab' | 'lift' | 'top' | 'return'): number {
     const s = this.s;
-    const v = { grab: s.grabPower, lift: s.liftPower, top: s.topPower, return: s.returnPower }[p];
+    const base = { grab: s.grabPower, lift: s.liftPower, top: s.topPower, return: s.returnPower }[p];
+    const v = base * this.zoneFactor(this.rig.gantry.x, this.rig.gantry.z);
     return (this.strongTurn ? Math.max(v, s.strongPower) : v) / 100;
   }
 

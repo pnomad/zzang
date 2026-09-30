@@ -12,6 +12,8 @@ export interface Cabinet {
   chuteMin: THREE.Vector2;
   chuteMax: THREE.Vector2;
   binY: number;
+  bottomY: number;            // 캐비닛 맨 아래 (받침 바닥) 높이
+  outerSize: THREE.Vector2;   // 외곽 가로·세로 (조작 패널 포함)
   successY: number;
   group: THREE.Group;
   bridge: THREE.Object3D;     // 갠트리 (z 이동)
@@ -20,7 +22,7 @@ export interface Cabinet {
 
 export function buildCabinet(
   world: RAPIER.World,
-  scene: THREE.Scene,
+  scene: THREE.Object3D,
   g: MachineGeometry,
   s: MachineSettings,
 ): Cabinet {
@@ -147,9 +149,6 @@ export function buildCabinet(
   );
   led.position.set(0, H + 0.02, D / 2 - 0.03);
   group.add(led);
-  const lamp = new THREE.PointLight(0xfff2d0, 1.5 * sc, 3 * sc, 1.5);
-  lamp.position.set(0, H - 0.05, 0.1 * sc);
-  group.add(lamp);
 
   // 갠트리 레일 + 브리지 + 캐리지
   for (const x of [x0 + 0.01, W / 2 - 0.01]) {
@@ -169,6 +168,8 @@ export function buildCabinet(
     chuteMin: new THREE.Vector2(x0, z1 - C),
     chuteMax: new THREE.Vector2(x0 + C, z1),
     binY,
+    bottomY: binY - 0.05 - baseH,
+    outerSize: new THREE.Vector2(W + 0.12 * sc, D + 0.12 * sc + 0.2 * sc),
     successY: -0.03,
     group, bridge, carriage,
   };

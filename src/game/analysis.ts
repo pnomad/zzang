@@ -9,13 +9,19 @@ export type Phase =
   | 'idle' | 'moveX' | 'moveZ' | 'move' | 'drop' | 'grab' | 'lift' | 'top' | 'return' | 'release' | 'result';
 
 export const PHASE_LABEL: Record<Phase, string> = {
-  idle: '동전을 넣으세요', moveX: '→ 버튼', moveZ: '↑ 버튼', move: '조이스틱 이동',
+  idle: '동전을 넣으세요', moveX: '→ 버튼', moveZ: '↑ 버튼', move: '이동 후 집기',
   drop: '하강 중', grab: '집는 중', lift: '상승 중', top: '꼭대기', return: '배출구로 이동',
   release: '놓는 중', result: '결과',
 };
 
 export type Cause =
-  | 'success' | 'pushSuccess' | 'miss' | 'slip' | 'dropLift' | 'dropTop' | 'dropSwing' | 'dropReturn' | 'guard' | 'dropRelease';
+  | 'success' | 'pushSuccess' | 'miss' | 'slip' | 'dropLift' | 'dropTop' | 'dropSwing' | 'dropReturn' | 'dropChute' | 'guard' | 'dropRelease';
+
+export const CAUSE_LABEL: Record<Cause, string> = {
+  success: '집어서 성공', pushSuccess: '밀어서 성공', miss: '빈 곳 집음', slip: '닿았지만 미끄러짐',
+  dropLift: '상승 중 낙하', dropTop: '꼭대기 힘 빠짐', dropSwing: '흔들림 낙하', dropReturn: '이동 중 낙하', dropChute: '배출구 앞 힘 빠짐',
+  guard: '가드 걸림', dropRelease: '배출구 빗나감',
+};
 
 export interface AttemptResult {
   success: boolean;
@@ -35,6 +41,13 @@ export interface TracePoint {
   lift: number;   // 잡힌 경품이 원래 위치보다 올라간 높이 (m)
   swing: number;  // 줄 흔들림 각도 (deg)
   phase: Phase;
+}
+
+/** 받침 유무에 맞는 조사를 붙인다: josa('토끼', '이', '가') → '토끼가' */
+function josa(word: string, withBatchim: string, without: string): string {
+  const c = word.charCodeAt(word.length - 1);
+  const hasBatchim = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0;
+  return word + (hasBatchim ? withBatchim : without);
 }
 
 /** 경품이 집게 충돌체와 실제로 닿아 있는지 */
@@ -58,7 +71,8 @@ export class AttemptTracker {
   private heldId: number | null = null;
   private maxLift = 0;
   private lostFor = 0;
-  private dropped: { id: number; phase: Phase; swing: number } | null = null;
+  private dropped: { id: number; phase: Phase; swing: number; zone: number } | null = null;
+  private grabZone = 1;
   private wonIds: number[] = [];
   private heldAtRelease: number | null = null;
   private t = 0;
@@ -71,6 +85,8 @@ export class AttemptTracker {
     private claw: Claw,
     private cabinet: Cabinet,
     public strongTurn: boolean,
+    /** 집게 위치별 힘 비율 (배출구 앞 힘 빠짐) */
+    private zone: (x: number, z: number) => number = () => 1,
   ) {
     this.liftThresh = claw.L * 0.25;
     for (const p of prizes) this.startY.set(p.id, prizeCenterOfMass(p).y);
@@ -85,6 +101,7 @@ export class AttemptTracker {
     // 발에 닿은 경품 기록
     if (phase === 'grab' || phase === 'lift') {
       const hub = this.claw.hub.translation();
+      if (phase === 'grab') this.grabZone = this.zone(hub.x, hub.z);
       for (const p of active) {
         if (touchingHandles(this.world, p, this.claw.fingerColliderHandles)) {
           if (!this.touched.has(p.id)) {
@@ -115,7 +132,8 @@ export class AttemptTracker {
         if (touchingHandles(this.world, p, this.claw.colliderHandles)) this.lostFor = 0;
         else this.lostFor += dt;
         if (this.lostFor > 0.15) {
-          this.dropped = { id: p.id, phase, swing: THREE.MathUtils.radToDeg(this.claw.swingAngle()) };
+          const tt = this.claw.trolley.translation();
+          this.dropped = { id: p.id, phase, swing: THREE.MathUtils.radToDeg(this.claw.swingAngle()), zone: this.zone(tt.x, tt.z) };
         }
       }
     }
@@ -178,7 +196,7 @@ export class AttemptTracker {
           title: '빈 곳을 집었어요',
           detail: '집게 발이 경품에 닿지 않았어요.',
           tips: [
-            '앞뒤 거리는 정면에서 잘 안 보여요. 시점 전환(V)으로 옆에서 보고 ↑ 버튼을 떼세요.',
+            '앞뒤 거리는 앞에서 보면 헷갈려요. 시점 전환(V)으로 옆에서 보고 위치를 맞추세요.',
             '집게는 하강하면서 벌어지니까, 경품 중심이 집게 한가운데 오도록 맞추세요.',
             ...strongNote,
           ],
@@ -194,6 +212,9 @@ export class AttemptTracker {
           ? `${p.def.name}에 닿았지만 발이 감기지 않고 미끄러졌어요. 집게 중심이 무게중심에서 ${cm(off)} 벗어나 있었어요.`
           : '경품에 닿았지만 미끄러졌어요.',
         tips: [
+          ...(this.grabZone < 0.9 && !this.strongTurn
+            ? [`배출구 가까이라 집는 힘이 평소의 ${Math.round(this.grabZone * 100)}%로 약해져 있었어요. 이 기계는 배출구 앞 경품을 일부러 잘 못 잡게 해 둔 거예요.`]
+            : []),
           ...(p ? [p.def.tip] : []),
           '집는 힘이 약한 기계는 발 3개가 모두 경품 아래로 들어가야 해요.',
           ...strongNote,
@@ -209,7 +230,7 @@ export class AttemptTracker {
         return {
           ...base, success: false, wonKinds, cause: 'dropLift', prizeName: name,
           title: '올라가다가 떨어졌어요',
-          detail: `${name}을(를) ${cm(this.maxLift)} 들어 올렸지만 상승 중 힘이 버티지 못했어요.`,
+          detail: `${josa(name, '을', '를')} ${cm(this.maxLift)} 들어 올렸지만 상승 중 힘이 버티지 못했어요.`,
           tips: [
             '상승 힘이 무게를 못 버티는 세팅이에요. 이런 기계는 정면으로 집어 올리기보다 걸기·굴리기가 현실적이에요.',
             held.def.tip, ...strongNote,
@@ -220,7 +241,7 @@ export class AttemptTracker {
         return {
           ...base, success: false, wonKinds, cause: 'dropTop', prizeName: name,
           title: '꼭대기에서 힘이 빠졌어요',
-          detail: `꼭대기에 도착하는 순간 집게 힘이 약해져서 ${name}이(가) 빠졌어요. 오락실 기계에서 가장 흔한 세팅이에요.`,
+          detail: `꼭대기에 도착하는 순간 집게 힘이 약해져서 ${josa(name, '이', '가')} 빠졌어요. 오락실 기계에서 가장 흔한 세팅이에요.`,
           tips: [
             '배출구 가까이 있는 경품을 노리세요. 떨어지더라도 배출구 쪽으로 튕기거나 굴러가요.',
             '꼭대기 힘이 약한 기계는 몇 판에 한 번 강집게가 나와요. 다른 사람이 얼마나 했는지 보는 것도 방법이에요.',
@@ -229,11 +250,23 @@ export class AttemptTracker {
         };
       }
       // return
+      if (d.zone < 0.9 && !this.strongTurn) {
+        return {
+          ...base, success: false, wonKinds, cause: 'dropChute', prizeName: name,
+          title: '배출구 앞에서 힘이 빠졌어요',
+          detail: `배출구에 가까워지자 집게 힘이 평소의 ${Math.round(d.zone * 100)}%로 약해져서 ${josa(name, '이', '가')} 빠졌어요.`,
+          tips: [
+            '오락실 기계에 흔한 세팅이에요. 멀리 있는 건 잘 잡히지만 배출구 앞에서 힘이 빠져요.',
+            '떨어진 경품이 배출구 쪽으로 굴러가도록, 배출구를 향해 기울어진 경품이나 가드에 기댄 경품을 노리세요.',
+            '배출구 앞에 떨어져 가드에 걸친 경품은 다음 판에 살짝 밀기만 해도 들어가요.',
+          ],
+        };
+      }
       if (d.swing > 5) {
         return {
           ...base, success: false, wonKinds, cause: 'dropSwing', prizeName: name,
           title: '흔들려서 떨어졌어요',
-          detail: `배출구로 가는 중 집게가 ${d.swing.toFixed(0)}° 흔들리면서 ${name}이(가) 빠졌어요.`,
+          detail: `배출구로 가는 중 집게가 ${d.swing.toFixed(0)}° 흔들리면서 ${josa(name, '이', '가')} 빠졌어요.`,
           tips: [
             '이동 중 흔들림은 갠트리가 멈추고 출발할 때 커져요. 배출구와 앞뒤·좌우가 가까운 경품일수록 덜 흔들려요.',
             ...strongNote,
@@ -243,7 +276,7 @@ export class AttemptTracker {
       return {
         ...base, success: false, wonKinds, cause: 'dropReturn', prizeName: name,
         title: '이동 중에 떨어졌어요',
-        detail: `배출구로 옮기는 동안 힘이 부족해서 ${name}이(가) 빠졌어요.`,
+        detail: `배출구로 옮기는 동안 힘이 부족해서 ${josa(name, '이', '가')} 빠졌어요.`,
         tips: [
           '이동 힘이 약한 기계예요. 배출구에 가까운 경품일수록 도착 전에 빠질 시간이 짧아요.',
           ...strongNote,
@@ -259,14 +292,14 @@ export class AttemptTracker {
       return {
         ...base, success: false, wonKinds, cause: 'guard', prizeName: name,
         title: '배출구 가드에 걸렸어요',
-        detail: `${name}을(를) 배출구 위까지 옮겼지만 가드에 걸쳐서 안 떨어졌어요.`,
+        detail: `${josa(name, '을', '를')} 배출구 위까지 옮겼지만 가드에 걸쳐서 안 떨어졌어요.`,
         tips: ['다음 판에 가드에 걸린 경품을 살짝 밀기만 해도 들어갈 수 있어요.', '크거나 긴 경품은 가드에 잘 걸려요.'],
       };
     }
     return {
       ...base, success: false, wonKinds, cause: 'dropRelease', prizeName: name,
       title: '아깝게 실패했어요',
-      detail: `${name}을(를) 옮겼지만 배출구에 들어가지 않았어요.`,
+      detail: `${josa(name, '을', '를')} 옮겼지만 배출구에 들어가지 않았어요.`,
       tips: [held.def.tip],
     };
   }

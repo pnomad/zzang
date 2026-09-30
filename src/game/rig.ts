@@ -16,15 +16,24 @@ export class Rig {
   readonly gantry: Gantry;
   readonly home: THREE.Vector2;
   prizes: Prize[] = [];
+  /** 대기 중인 집게 끝의 높이 (경품 바닥 기준) */
+  readonly clawTipY: number;
 
-  constructor(private scene: THREE.Scene, readonly settings: MachineSettings) {
+  constructor(private scene: THREE.Object3D, readonly settings: MachineSettings) {
     this.world = createWorld();
-    this.geom = GEOMETRY[settings.kind];
+    const base = GEOMETRY[settings.kind];
+    // 천장 높이는 경품 크기로 정한다: 집게 끝이 경품 2.5개가 쌓인 높이쯤에 오게 (실제 기계처럼)
+    const sc = base.width / 0.8;
+    this.clawTipY = settings.ceilingScale * idleTipHeight(settings);
+    // 천장(트롤리) ~ 집게 끝 = 줄 최소 길이 + 본체 높이 + 발 길이 (claw.ts 치수 기준)
+    const clawStack = 0.13 * sc + 1.02 * base.prongLength * settings.prongScale;
+    this.geom = { ...base, height: this.clawTipY + clawStack };
     this.cabinet = buildCabinet(this.world, scene, this.geom, settings);
 
     const g = this.geom;
     const L = g.prongLength * settings.prongScale;
-    const margin = (0.05 * g.prongLength) / 0.13 + 0.15 * L;
+    // 집게가 갈 수 있는 끝: 본체 반지름 + 발이 옆으로 벌어지는 만큼 벽에서 띄운다 (벽에 기대면 줄이 기울어짐)
+    const margin = (0.05 * g.prongLength) / 0.13 + 0.35 * L;
     const min = { x: -g.width / 2 + margin, z: -g.depth / 2 + margin };
     const max = { x: g.width / 2 - margin, z: g.depth / 2 - margin };
     this.home = new THREE.Vector2(
@@ -32,7 +41,7 @@ export class Rig {
       THREE.MathUtils.clamp(this.cabinet.chuteCenter.y, min.z, max.z),
     );
     this.claw = new Claw(this.world, scene, g, settings, this.home);
-    this.gantry = new Gantry(this.home.x, this.home.y, min, max, g.moveAccel);
+    this.gantry = new Gantry(this.home.x, this.home.y, min, max, g.moveAccel, g.moveSmooth);
     this.fillPrizes();
   }
 
@@ -87,10 +96,12 @@ export class Rig {
     // 배출구로 굴러 들어갔거나 벽에 끼인 건 제거
     const outside = (col: RAPIER.Collider) => {
       const t = col.translation();
-      return Math.abs(t.x) > g.width / 2 || Math.abs(t.z) > g.depth / 2 || t.y > g.height * 0.6;
+      return Math.abs(t.x) > g.width / 2 || Math.abs(t.z) > g.depth / 2;
     };
+    // 너무 높이 쌓여 대기 중인 집게에 닿을 만한 것도 뺀다
+    const tooHigh = (p: Prize) => Math.max(...p.colliders.map((q) => q.translation().y)) + p.def.size * 0.5 > this.clawTipY - 0.015;
     for (const p of [...this.prizes]) {
-      if (p.main.translation().y < c.successY || p.colliders.some(outside)) this.removePrizeObj(p);
+      if (p.main.translation().y < c.successY || p.colliders.some(outside) || tooHigh(p)) this.removePrizeObj(p);
     }
     this.syncAll();
   }
@@ -137,4 +148,18 @@ function shuffle<T>(a: T[]) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
+}
+
+/** 경품 구성에 맞춘 기본 집게 대기 높이: 쌓였을 때 한 개 두께(평균) × 2.5 */
+function idleTipHeight(s: MachineSettings): number {
+  const sc = GEOMETRY[s.kind].width / 0.8;
+  let sum = 0, n = 0;
+  for (const [kind, count] of Object.entries(s.prizeMix) as [PrizeKind, number][]) {
+    if (!count || !PRIZES[kind].machines.includes(s.kind)) continue;
+    sum += PRIZES[kind].stack * count;
+    n += count;
+  }
+  const stack = n ? sum / n : 0.15 * sc;
+  // 너무 납작한 경품만 있어도 이동 중 더미에 걸리지 않을 만큼은 띄운다
+  return Math.max(2.5 * stack, 0.3 * sc);
 }

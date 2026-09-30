@@ -1,7 +1,7 @@
-import { PHASE_LABEL, type AttemptResult, type Phase } from '../game/analysis';
+import { CAUSE_LABEL, PHASE_LABEL, type AttemptResult, type Cause, type Phase } from '../game/analysis';
 import type { ControlMode } from '../machine/settings';
 
-export interface Stats { attempts: number; wins: number; spent: number; }
+export interface Stats { attempts: number; wins: number; spent: number; causes?: Partial<Record<Cause, number>>; }
 
 const won = (n: number) => '₩' + n.toLocaleString('ko-KR');
 
@@ -23,6 +23,9 @@ export interface HudHandlers {
   replaySeek(frame: number): void;
   replayToggle(): void;
   replaySpeed(s: number): void;
+  mute(): void;
+  enter(): void;   // 오락실에서 앞에 있는 기계로 들어가기
+  leave(): void;   // 기계에서 나와 오락실로
 }
 
 export class Hud {
@@ -37,7 +40,7 @@ export class Hud {
   private meterVal: HTMLElement;
   private swingVal: HTMLElement;
   private controls: HTMLElement;
-  private coinBtn!: HTMLButtonElement;
+  private coinBtn: HTMLButtonElement | null = null;
   private camBtn!: HTMLButtonElement;
   private resultEl: HTMLElement;
   private replayEl: HTMLElement;
@@ -65,7 +68,12 @@ export class Hud {
       this.statEls[key] = v;
       stats.append(s);
     }
-    card.append(modeRow, stats);
+    // 결과별 횟수: 내가 어디서 주로 실패하는지 보여준다
+    this.causesEl = el('details', 'causes');
+    this.causesEl.append(el('summary', '', '결과별 기록'));
+    this.causesList = el('div', 'cause-list');
+    this.causesEl.append(this.causesList);
+    card.append(modeRow, stats, this.causesEl);
     top.append(card);
 
     // 상단 중앙: 진행 상태
@@ -99,7 +107,7 @@ export class Hud {
 
     // 도움말
     const help = el('div', 'hud card',
-      '<b>Enter</b> 동전 · <b>→ ↑</b> 버튼(누르고 있다 떼기)<br><b>V</b> 시점 전환 · <b>R</b> 리플레이');
+      '<b>Enter / Space</b> 동전 · 집기 · <b>방향키</b> 이동<br><b>V</b> 시점 · <b>R</b> 리플레이 · <b>M</b> 소리');
     help.id = 'help';
     this.help = help;
 
@@ -132,41 +140,99 @@ export class Hud {
   }
 
   private help: HTMLElement;
+  private causesEl: HTMLDetailsElement;
+  private causesList: HTMLElement;
+  private muteBtn!: HTMLButtonElement;
+  private muted = false;
+  private camLabel = '위에서';
+  private exitBtn: HTMLButtonElement | null = null;
+  private enterBtn: HTMLButtonElement | null = null;
+  private inLobby = false;
+  private real = false;
 
   setControlMode(mode: ControlMode, price: number) {
     if (this.controlMode === mode) { this.setPrice(price); return; }
     this.controlMode = mode;
+    this.inLobby = false;
+    this.enterBtn = null;
+    this.meter.style.display = this.real ? 'none' : '';
     this.controls.innerHTML = '';
-    this.coinBtn = el('button', 'btn coin');
-    this.coinBtn.onclick = () => this.h.coin();
+    const coin = (this.coinBtn = el('button', 'btn coin'));
+    coin.onclick = () => this.h.coin();
     this.setPrice(price);
 
-    const holdBtn = (label: string, key: HoldKey, cls: string) => {
-      const b = el('button', 'btn ' + cls, label);
-      const down = (e: Event) => { e.preventDefault(); b.classList.add('down'); this.h.hold(key, true); };
-      const up = () => { b.classList.remove('down'); this.h.hold(key, false); };
-      b.addEventListener('pointerdown', down);
-      b.addEventListener('pointerup', up);
-      b.addEventListener('pointerleave', up);
-      b.addEventListener('pointercancel', up);
-      b.addEventListener('contextmenu', (e) => e.preventDefault());
-      return b;
-    };
+    const holdBtn = this.holdBtn.bind(this);
 
-    this.controls.append(this.coinBtn);
+    this.controls.append(coin);
     if (mode === 'twoButton') {
       this.controls.append(holdBtn('→', 'right', 'arrow'), holdBtn('↑', 'up', 'arrow blue'));
-      this.help.innerHTML = '<b>Enter</b> 동전 · <b>→</b> 누르고 있다 떼기 → <b>↑</b> 누르고 있다 떼기<br><b>V</b> 시점 전환 · <b>R</b> 리플레이';
+      this.help.innerHTML = '<b>Enter</b> 동전 · <b>→</b> 누르고 있다 떼기 → <b>↑</b> 누르고 있다 떼기<br><b>V</b> 시점 · <b>R</b> 리플레이 · <b>M</b> 소리';
     } else {
       const pad = el('div', 'dpad');
       pad.append(el('span'), holdBtn('↑', 'up', 'arrow blue'), el('span'),
         holdBtn('←', 'left', 'arrow'), holdBtn('↓', 'down', 'arrow blue'), holdBtn('→', 'right', 'arrow'));
       this.controls.append(pad, holdBtn('집기', 'drop', 'drop'));
-      this.help.innerHTML = '<b>Enter</b> 동전 · <b>방향키</b> 이동 · <b>Space</b> 집기<br><b>V</b> 시점 전환 · <b>R</b> 리플레이';
+      this.help.innerHTML = '<b>Enter / Space</b> 동전 · 집기 · <b>방향키</b> 이동<br><b>V</b> 시점 · <b>R</b> 리플레이 · <b>M</b> 소리';
     }
-    this.camBtn = el('button', 'btn ghost', '시점: 정면');
+    this.camBtn = el('button', 'btn ghost', `시점: ${this.camLabel}`);
     this.camBtn.onclick = () => this.h.camera();
-    this.controls.append(this.camBtn);
+    this.exitBtn = el('button', 'btn ghost', '🚶 나가기');
+    this.exitBtn.title = '기계에서 나가기 (Esc)';
+    this.exitBtn.onclick = () => this.h.leave();
+    this.controls.append(this.camBtn, this.exitBtn, this.muteButton());
+    this.help.innerHTML += ' · <b>Esc</b> 나가기';
+  }
+
+  private muteButton() {
+    this.muteBtn = el('button', 'btn ghost');
+    this.muteBtn.onclick = () => this.h.mute();
+    this.setMuted(this.muted);
+    return this.muteBtn;
+  }
+
+  private holdBtn(label: string, key: HoldKey, cls: string) {
+    const b = el('button', 'btn ' + cls, label);
+    const down = (e: Event) => { e.preventDefault(); b.classList.add('down'); this.h.hold(key, true); };
+    const up = () => { b.classList.remove('down'); this.h.hold(key, false); };
+    b.addEventListener('pointerdown', down);
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointerleave', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+    return b;
+  }
+
+  /** 오락실을 걸어 다니는 화면 */
+  showLobby() {
+    this.inLobby = true;
+    this.controlMode = null; // 기계로 들어가면 조작 버튼을 다시 만든다
+    this.controls.innerHTML = '';
+    this.coinBtn = null;
+    this.exitBtn = null;
+    const pad = el('div', 'dpad');
+    pad.append(el('span'), this.holdBtn('↑', 'up', 'arrow blue'), el('span'),
+      this.holdBtn('←', 'left', 'arrow'), this.holdBtn('↓', 'down', 'arrow blue'), this.holdBtn('→', 'right', 'arrow'));
+    this.enterBtn = el('button', 'btn drop', '이 기계 하기');
+    this.enterBtn.onclick = () => this.h.enter();
+    this.controls.append(pad, this.enterBtn, this.muteButton());
+    this.help.innerHTML = '<b>방향키</b> 걷기<br><b>Enter / Space</b> 기계 앞에서 플레이 · <b>M</b> 소리';
+    this.meter.style.display = 'none';
+    this.strongEl.style.display = 'none';
+  }
+
+  /** 오락실 화면의 상태 표시. near: 앞에 있는 기계 이름 */
+  setLobbyStatus(near: string | null, loading: string | null) {
+    this.phaseEl.textContent = near ?? '오락실';
+    this.timerEl.innerHTML = loading ?? (near ? '<span class="kbd-hint">Enter / Space로 </span>플레이' : '기계 앞으로 걸어가세요');
+    if (this.enterBtn) this.enterBtn.disabled = !near;
+  }
+
+  setMuted(m: boolean) {
+    this.muted = m;
+    if (this.muteBtn) {
+      this.muteBtn.textContent = m ? '🔇' : '🔊';
+      this.muteBtn.title = m ? '소리 켜기 (M)' : '소리 끄기 (M)';
+    }
   }
 
   private setPrice(price: number) {
@@ -174,6 +240,7 @@ export class Hud {
   }
 
   setCameraLabel(label: string) {
+    this.camLabel = label;
     if (this.camBtn) this.camBtn.textContent = `시점: ${label}`;
   }
 
@@ -181,7 +248,8 @@ export class Hud {
     this.badge.textContent = real ? '실전' : '연습';
     this.badge.classList.toggle('real', real);
     this.machineName.textContent = machineLabel;
-    this.meter.style.display = real ? 'none' : '';
+    this.real = real;
+    this.meter.style.display = real || this.inLobby ? 'none' : '';
   }
 
   setStats(s: Stats) {
@@ -189,14 +257,27 @@ export class Hud {
     this.statEls.wins.textContent = String(s.wins);
     this.statEls.rate.textContent = s.attempts ? `${Math.round((s.wins / s.attempts) * 100)}%` : '-';
     this.statEls.spent.textContent = won(s.spent);
+    const entries = (Object.entries(s.causes ?? {}) as [Cause, number][]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+    this.causesEl.style.display = entries.length ? '' : 'none';
+    this.causesList.innerHTML = '';
+    for (const [c, n] of entries) {
+      const win = c === 'success' || c === 'pushSuccess';
+      const row = el('div', 'cause' + (win ? ' win' : ''));
+      const bar = el('i');
+      bar.style.width = `${Math.round((n / s.attempts) * 100)}%`;
+      row.append(el('span', '', CAUSE_LABEL[c]), el('b', '', String(n)), bar);
+      this.causesList.append(row);
+    }
   }
 
   setPhase(phase: Phase, timeLeft: number, strong: boolean, busy: boolean) {
     this.phaseEl.textContent = PHASE_LABEL[phase];
     const timed = phase === 'moveX' || phase === 'moveZ' || phase === 'move';
-    this.timerEl.textContent = timed ? `남은 시간 ${timeLeft.toFixed(1)}초` : busy ? '' : 'Enter 또는 동전 버튼';
+    // 키보드 안내는 휴대폰에서 CSS로 숨긴다
+    this.timerEl.innerHTML = timed ? `남은 시간 ${timeLeft.toFixed(1)}초` + (phase === 'move' ? '<span class="kbd-hint"> · Enter/Space 집기</span>' : '') : busy ? '' : '<span class="kbd-hint">Enter / Space 또는 </span>동전 버튼';
     this.strongEl.style.display = strong ? 'block' : 'none';
     if (this.coinBtn) this.coinBtn.disabled = busy;
+    if (this.exitBtn) this.exitBtn.disabled = busy;
   }
 
   setMeter(power: number, swingDeg: number) {

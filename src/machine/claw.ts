@@ -49,7 +49,7 @@ export class Claw {
 
   constructor(
     private world: RAPIER.World,
-    private scene: THREE.Scene,
+    private scene: THREE.Object3D,
     g: MachineGeometry,
     s: MachineSettings,
     home: THREE.Vector2,
