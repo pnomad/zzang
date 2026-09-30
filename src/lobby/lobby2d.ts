@@ -31,13 +31,13 @@ export class Lobby2D {
   readonly canvas: HTMLCanvasElement;
   private g: CanvasRenderingContext2D;
   private slots: Slot[] = [];
-  private roomW = 10.5;
+  private roomW = 11.6;
   private roomH = 8.0;
   private zoom = 80;
   private cam = { x: 0, y: 0 };
   private carpet: CanvasPattern;
   private signs = new Map<ArcadeMachine, HTMLCanvasElement>();
-  readonly player = { x: 5.25, y: 7.2, dir: 'up' as Dir, walk: 0, moving: false };
+  readonly player = { x: 5.8, y: 7.2, dir: 'up' as Dir, walk: 0, moving: false };
   near: ArcadeMachine | null = null;
 
   constructor(parent: HTMLElement, machines: ArcadeMachine[]) {

@@ -137,6 +137,129 @@ function scaled(k: number, build: (c: number) => { parts: Part[]; limbs: LimbDef
 const PASTEL = [0xf4a7b9, 0xa7d8f4, 0xf9e79f, 0xc3aed6, 0xa8e6cf, 0xffd3b6];
 const BROWN = [0xa9744f, 0xd2a679, 0x8b5a3c, 0xf5f0e6];
 
+
+// ---------- 캐릭터 인형 (유명 캐릭터 분위기의 오리지널 디자인) ----------
+type Build = { parts: Part[]; limbs: LimbDef[] };
+const RC = (hx: number, hy: number, hz: number, br: number) => ({ type: 'roundCuboid' as const, hx, hy, hz, br });
+const CAP = (hh: number, r: number) => ({ type: 'capsule' as const, hh, r });
+
+/** 흔들리는 긴 귀 (집게 발을 걸 수 있다) */
+function floppyEar(side: number, anchor: V3, color: number, len: number, r: number, spread: number, inner?: number): LimbDef {
+  const parts: Part[] = [
+    { shape: CAP(len, r), pos: [side * 0.004, len * 0.9, 0], rot: [0, 0, -side * spread], color, mat: 'plush' },
+  ];
+  if (inner !== undefined) {
+    parts.push({ shape: CAP(len * 0.75, r * 0.55), pos: [side * 0.004, len * 0.9, r * 0.6], rot: [0, 0, -side * spread], color: inner, mat: 'plush', visualOnly: true });
+  }
+  return { anchor, axis: [1, 0, 0], massRatio: 0.05, stiffness: 25, damping: 2, limits: [-1.4, 1.4], parts };
+}
+
+/** 리본 고양이: 하얗고 넓은 얼굴, 한쪽 귀에 빨간 리본, 노란 코, 수염 */
+function ribbonCat(dress: number): Build {
+  const W = 0xfdfdfd, bow = 0xe03131;
+  const parts: Part[] = [
+    { shape: RC(0.048, 0.045, 0.038, 0.03), pos: [0, 0.05, 0], color: dress, mat: 'plush' },
+    { shape: RC(0.078, 0.056, 0.058, 0.048), pos: [0, 0.148, 0], color: W, mat: 'plush' },
+    { shape: S(0.02), pos: [-0.05, 0.2, 0], color: W, mat: 'plush' },
+    { shape: S(0.02), pos: [0.05, 0.2, 0], color: W, mat: 'plush' },
+    { shape: S(0.018), pos: [-0.032, 0.012, 0.03], color: W, mat: 'plush' },
+    { shape: S(0.018), pos: [0.032, 0.012, 0.03], color: W, mat: 'plush' },
+    { shape: S(0.016), pos: [-0.055, 0.075, 0.01], color: W, mat: 'plush' },
+    { shape: S(0.016), pos: [0.055, 0.075, 0.01], color: W, mat: 'plush' },
+    // 리본
+    { shape: S(0.017), pos: [0.045, 0.21, 0.02], color: bow, mat: 'plush', visualOnly: true },
+    { shape: S(0.017), pos: [0.08, 0.195, 0.02], color: bow, mat: 'plush', visualOnly: true },
+    { shape: S(0.009), pos: [0.062, 0.203, 0.03], color: 0xffd43b, mat: 'plush', visualOnly: true },
+    // 얼굴: 세로로 긴 까만 눈, 노란 코, 수염
+    { shape: RC(0.006, 0.01, 0.004, 0.004), pos: [-0.03, 0.15, 0.057], color: 0x111111, mat: 'plastic', visualOnly: true },
+    { shape: RC(0.006, 0.01, 0.004, 0.004), pos: [0.03, 0.15, 0.057], color: 0x111111, mat: 'plastic', visualOnly: true },
+    { shape: RC(0.009, 0.006, 0.004, 0.004), pos: [0, 0.135, 0.058], color: 0xfab005, mat: 'plastic', visualOnly: true },
+  ];
+  for (const side of [-1, 1]) for (const dy of [0.006, -0.008]) {
+    parts.push({ shape: { type: 'cuboid', hx: 0.017, hy: 0.0012, hz: 0.0012 }, pos: [side * 0.07, 0.14 + dy, 0.045], rot: [0, 0, side * dy * 12], color: 0x222222, mat: 'plastic', visualOnly: true });
+  }
+  return { parts, limbs: [] };
+}
+
+/** 두건 토끼: 두건과 긴 귀가 한 몸, 하얀 얼굴 (분홍 두건 + 꽃 / 검정 두건 + 이마 장식) */
+function hoodRabbit(hood: number, variant: 'pink' | 'black'): Build {
+  const W = 0xfdfdfd;
+  const body = variant === 'pink' ? 0xf8c8dc : 0x1a1a1f;
+  const parts: Part[] = [
+    { shape: S(0.05), pos: [0, 0.05, 0], color: body, mat: 'plush' },
+    { shape: S(0.064), pos: [0, 0.15, -0.006], color: hood, mat: 'plush' },
+    { shape: RC(0.045, 0.036, 0.02, 0.018), pos: [0, 0.14, 0.042], color: W, mat: 'plush', visualOnly: true },
+    { shape: S(0.018), pos: [-0.03, 0.012, 0.03], color: hood, mat: 'plush' },
+    { shape: S(0.018), pos: [0.03, 0.012, 0.03], color: hood, mat: 'plush' },
+    ...eyes(0.142, 0.06, 0.02, 0.0065),
+    { shape: S(0.005), pos: [0, 0.13, 0.062], color: variant === 'pink' ? 0xfab005 : 0xf783ac, mat: 'plastic', visualOnly: true },
+  ];
+  if (variant === 'pink') {
+    parts.push({ shape: S(0.012), pos: [0.04, 0.2, 0.03], color: 0xff6b9a, mat: 'plush', visualOnly: true });
+    parts.push({ shape: S(0.006), pos: [0.04, 0.2, 0.04], color: 0xffd43b, mat: 'plush', visualOnly: true });
+  } else {
+    parts.push({ shape: S(0.011), pos: [0, 0.2, 0.05], color: 0xf783ac, mat: 'plush', visualOnly: true });
+  }
+  const tipped = variant === 'black' ? 0.35 : 0.1;
+  const inner = variant === 'pink' ? 0xfff0f6 : undefined;
+  const len = variant === 'pink' ? 0.052 : 0.042;
+  return {
+    parts,
+    limbs: [
+      floppyEar(-1, [-0.03, 0.2, -0.01], hood, len, 0.016, tipped, inner),
+      floppyEar(1, [0.03, 0.2, -0.01], hood, len, 0.016, tipped, inner),
+    ],
+  };
+}
+
+/** 구름 강아지: 하얀 몸, 양옆으로 축 늘어진 큰 귀, 파란 눈, 말린 꼬리 */
+function cloudPuppy(): Build {
+  const W = 0xfdfdfd;
+  const parts: Part[] = [
+    { shape: S(0.05), pos: [0, 0.05, 0], color: W, mat: 'plush' },
+    { shape: RC(0.066, 0.058, 0.058, 0.05), pos: [0, 0.15, 0], color: W, mat: 'plush' },
+    { shape: S(0.016), pos: [-0.028, 0.012, 0.03], color: W, mat: 'plush' },
+    { shape: S(0.016), pos: [0.028, 0.012, 0.03], color: W, mat: 'plush' },
+    { shape: S(0.02), pos: [0, 0.06, -0.055], color: W, mat: 'plush' }, // 말린 꼬리
+    ...eyes(0.15, 0.056, 0.024, 0.008),
+    { shape: S(0.0035), pos: [-0.026, 0.153, 0.063], color: 0x4dabf7, mat: 'plastic', visualOnly: true },
+    { shape: S(0.0035), pos: [0.026, 0.153, 0.063], color: 0x4dabf7, mat: 'plastic', visualOnly: true },
+    { shape: S(0.011), pos: [-0.042, 0.132, 0.05], color: 0xffc9de, mat: 'plush', visualOnly: true },
+    { shape: S(0.011), pos: [0.042, 0.132, 0.05], color: 0xffc9de, mat: 'plush', visualOnly: true },
+  ];
+  // 귀는 옆으로 축 늘어진다 (경첩축이 앞뒤라 위아래로 펄럭)
+  const ear = (side: number): LimbDef => ({
+    anchor: [side * 0.055, 0.185, 0], axis: [0, 0, 1], massRatio: 0.06, stiffness: 18, damping: 2, limits: [-0.9, 0.9],
+    parts: [{ shape: RC(0.048, 0.01, 0.028, 0.009), pos: [side * 0.045, -0.012, 0], rot: [0, 0, -side * 0.35], color: W, mat: 'plush' }],
+  });
+  return { parts, limbs: [ear(-1), ear(1)] };
+}
+
+/** 베레모 강아지: 노란 몸, 갈색 베레모, 늘어진 갈색 귀 */
+function beretPuppy(): Build {
+  const Y = 0xf7d774, B = 0x8b5a3c;
+  const parts: Part[] = [
+    { shape: RC(0.056, 0.05, 0.048, 0.04), pos: [0, 0.052, 0], color: Y, mat: 'plush' },
+    { shape: RC(0.068, 0.056, 0.058, 0.05), pos: [0, 0.152, 0], color: Y, mat: 'plush' },
+    { shape: S(0.018), pos: [-0.032, 0.012, 0.035], color: Y, mat: 'plush' },
+    { shape: S(0.018), pos: [0.032, 0.012, 0.035], color: Y, mat: 'plush' },
+    { shape: { type: 'cylinder', hh: 0.009, r: 0.042 }, pos: [0.006, 0.212, -0.004], rot: [0.12, 0, 0.1], color: B, mat: 'plush' },
+    { shape: S(0.008), pos: [0.008, 0.224, -0.004], color: B, mat: 'plush', visualOnly: true },
+    { shape: RC(0.012, 0.03, 0.02, 0.01), pos: [-0.072, 0.14, 0], rot: [0, 0, 0.15], color: B, mat: 'plush' },
+    { shape: RC(0.012, 0.03, 0.02, 0.01), pos: [0.072, 0.14, 0], rot: [0, 0, -0.15], color: B, mat: 'plush' },
+    ...eyes(0.155, 0.057, 0.024, 0.0075),
+    { shape: S(0.007), pos: [0, 0.14, 0.062], color: 0x5c3a21, mat: 'plastic', visualOnly: true },
+  ];
+  return { parts, limbs: [] };
+}
+
+const CHAR_TIP = {
+  cat: '머리가 넓고 무거워서 몸통보다 머리 아래(목)를 감싸야 안 빠져요. 리본 쪽이 살짝 더 무거워요.',
+  rabbit: '긴 귀가 걸기 포인트예요. 귀 밑에 발 하나만 걸려도 딸려 올라와요.',
+  puppy: '옆으로 늘어진 큰 귀 밑으로 발이 들어가면 잘 걸려요. 몸이 둥글어서 정면으로는 잘 미끄러져요.',
+  beret: '몸이 통통해서 발이 잘 안 감겨요. 머리 쪽을 노려 베레모 밑에 발을 걸어 보세요.',
+};
+
 export const PRIZES: Record<PrizeKind, PrizeDef> = {
   bear: {
     kind: 'bear', name: '곰 인형', category: 'plush', mass: 0.25, friction: 1.1, restitution: 0.05,
@@ -273,6 +396,58 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
     size: 0.075, stack: 0.05, machines: ['mini'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
     tip: '가볍지만 길쭉해서 가운데를 잡으면 양쪽이 처져요. 머리 쪽을 노리세요.',
     build: (c) => scaled(0.5, PRIZES.longCat.build)(c),
+  },
+  // ---- 캐릭터 인형 (일반) ----
+  ribbonCat: {
+    kind: 'ribbonCat', name: '리본 고양이', category: 'plush', mass: 0.2, friction: 1.1, restitution: 0.05,
+    size: 0.1, stack: 0.14, machines: ['regular'], colors: [0x4dabf7, 0xe03131, 0xf783ac],
+    tip: CHAR_TIP.cat, build: (c) => ribbonCat(c),
+  },
+  pinkHoodRabbit: {
+    kind: 'pinkHoodRabbit', name: '분홍 두건 토끼', category: 'plush', mass: 0.18, friction: 1.1, restitution: 0.05,
+    size: 0.1, stack: 0.14, machines: ['regular'], colors: [0xffa8c5],
+    tip: CHAR_TIP.rabbit, build: (c) => hoodRabbit(c, 'pink'),
+  },
+  blackHoodRabbit: {
+    kind: 'blackHoodRabbit', name: '검정 두건 토끼', category: 'plush', mass: 0.18, friction: 1.1, restitution: 0.05,
+    size: 0.1, stack: 0.14, machines: ['regular'], colors: [0x1a1a1f],
+    tip: CHAR_TIP.rabbit, build: (c) => hoodRabbit(c, 'black'),
+  },
+  cloudPuppy: {
+    kind: 'cloudPuppy', name: '구름 강아지', category: 'plush', mass: 0.17, friction: 1.05, restitution: 0.05,
+    size: 0.11, stack: 0.14, machines: ['regular'], colors: [0xfdfdfd],
+    tip: CHAR_TIP.puppy, build: () => cloudPuppy(),
+  },
+  beretPuppy: {
+    kind: 'beretPuppy', name: '베레모 강아지', category: 'plush', mass: 0.22, friction: 1.05, restitution: 0.05,
+    size: 0.1, stack: 0.15, machines: ['regular'], colors: [0xf7d774],
+    tip: CHAR_TIP.beret, build: () => beretPuppy(),
+  },
+  // ---- 캐릭터 인형 (미니: 같은 모양을 절반 크기로) ----
+  miniRibbonCat: {
+    kind: 'miniRibbonCat', name: '미니 리본 고양이', category: 'plush', mass: 0.035, friction: 1.1, restitution: 0.05,
+    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0x4dabf7, 0xe03131, 0xf783ac],
+    tip: CHAR_TIP.cat, build: (c) => scaled(0.5, ribbonCat)(c),
+  },
+  miniPinkHoodRabbit: {
+    kind: 'miniPinkHoodRabbit', name: '미니 분홍 두건 토끼', category: 'plush', mass: 0.032, friction: 1.1, restitution: 0.05,
+    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0xffa8c5],
+    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.5, (cc) => hoodRabbit(cc, 'pink'))(c),
+  },
+  miniBlackHoodRabbit: {
+    kind: 'miniBlackHoodRabbit', name: '미니 검정 두건 토끼', category: 'plush', mass: 0.032, friction: 1.1, restitution: 0.05,
+    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0x1a1a1f],
+    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.5, (cc) => hoodRabbit(cc, 'black'))(c),
+  },
+  miniCloudPuppy: {
+    kind: 'miniCloudPuppy', name: '미니 구름 강아지', category: 'plush', mass: 0.03, friction: 1.05, restitution: 0.05,
+    size: 0.055, stack: 0.07, machines: ['mini'], colors: [0xfdfdfd],
+    tip: CHAR_TIP.puppy, build: () => scaled(0.5, cloudPuppy)(0),
+  },
+  miniBeretPuppy: {
+    kind: 'miniBeretPuppy', name: '미니 베레모 강아지', category: 'plush', mass: 0.038, friction: 1.05, restitution: 0.05,
+    size: 0.05, stack: 0.075, machines: ['mini'], colors: [0xf7d774],
+    tip: CHAR_TIP.beret, build: () => scaled(0.5, beretPuppy)(0),
   },
   smallBox: {
     kind: 'smallBox', name: '미니 상자', category: 'box', mass: 0.035, friction: 0.38, restitution: 0.1,

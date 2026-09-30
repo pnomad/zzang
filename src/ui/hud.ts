@@ -25,6 +25,7 @@ export interface HudHandlers {
   replaySpeed(s: number): void;
   mute(): void;
   enter(): void;   // 오락실에서 앞에 있는 기계로 들어가기
+  resetAll(): void; // 모든 기계 연습 세팅을 기본값으로
   leave(): void;   // 기계에서 나와 오락실로
 }
 
@@ -214,7 +215,21 @@ export class Hud {
       this.holdBtn('←', 'left', 'arrow'), this.holdBtn('↓', 'down', 'arrow blue'), this.holdBtn('→', 'right', 'arrow'));
     this.enterBtn = el('button', 'btn drop', '이 기계 하기');
     this.enterBtn.onclick = () => this.h.enter();
-    this.controls.append(pad, this.enterBtn, this.muteButton());
+    // 실수로 누르지 않게 3초 안에 한 번 더 눌러야 초기화한다
+    const reset = el('button', 'btn ghost', '↩ 모든 기계 세팅 초기화');
+    let armed = 0;
+    reset.onclick = () => {
+      if (Date.now() - armed < 3000) {
+        armed = 0;
+        reset.textContent = '↩ 모든 기계 세팅 초기화';
+        this.h.resetAll();
+        return;
+      }
+      armed = Date.now();
+      reset.textContent = '한 번 더 누르면 초기화';
+      setTimeout(() => { if (Date.now() - armed >= 3000) reset.textContent = '↩ 모든 기계 세팅 초기화'; }, 3000);
+    };
+    this.controls.append(pad, this.enterBtn, this.muteButton(), reset);
     this.help.innerHTML = '<b>방향키</b> 걷기<br><b>Enter / Space</b> 기계 앞에서 플레이 · <b>M</b> 소리';
     this.meter.style.display = 'none';
     this.strongEl.style.display = 'none';

@@ -8,6 +8,8 @@ export type PrizeKind =
   | 'bear' | 'rabbit' | 'cushion' | 'longCat' | 'bigBear'
   | 'figureBox' | 'snackBox' | 'keyring'
   | 'miniDoll' | 'miniBear' | 'miniBigBear' | 'miniRabbit' | 'miniCat'
+  | 'ribbonCat' | 'pinkHoodRabbit' | 'blackHoodRabbit' | 'cloudPuppy' | 'beretPuppy'
+  | 'miniRibbonCat' | 'miniPinkHoodRabbit' | 'miniBlackHoodRabbit' | 'miniCloudPuppy' | 'miniBeretPuppy'
   | 'smallBox' | 'capsule';
 
 /** 기계 크기별 고정 치수 (m). 세팅 패널에서 바꾸지 않는 값. */
@@ -130,6 +132,8 @@ const BIG_DOLLS = { bigBear: 3, longCat: 4 };
 // 큰 인형 기계는 배출구 가드가 인형 몸 높이(놓인 상태 약 22.5cm)보다 10% 높다: 밀어 넣기는 안 되고 들어서 넘겨야 한다
 const BIG_DOLL_GUARD = 0.25;
 const BIG_BOXES = { figureBox: 8, snackBox: 8 };
+const CHARACTERS = { ribbonCat: 4, pinkHoodRabbit: 4, blackHoodRabbit: 4, cloudPuppy: 4, beretPuppy: 4 };
+const MINI_CHARACTERS = { miniRibbonCat: 3, miniPinkHoodRabbit: 3, miniBlackHoodRabbit: 3, miniCloudPuppy: 3, miniBeretPuppy: 3 };
 const SMALL_BOXES = { smallBox: 18 };
 const CAPSULES = { capsule: 20 };
 
@@ -142,11 +146,13 @@ export const PRESETS: Preset[] = [
   preset('일반 인형', '짠물 기계', 3, REGULAR_BASE, REGULAR_STINGY),
   preset('일반 인형', '연습용 강집게', 1, REGULAR_BASE, STRONG),
   preset('큰 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_DOLLS, guardHeight: BIG_DOLL_GUARD }),
+  preset('캐릭터 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: CHARACTERS }),
   preset('큰 박스', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_BOXES }),
   preset('큰 박스', '짠물 기계', 3, REGULAR_BASE, { ...REGULAR_STINGY, prizeMix: BIG_BOXES }),
   preset('미니 인형', '흔한 세팅', 2, MINI_BASE, {}),
   preset('미니 인형', '짠물 기계', 3, MINI_BASE, MINI_STINGY),
   preset('미니 인형', '연습용 강집게', 1, MINI_BASE, STRONG),
+  preset('미니 캐릭터', '흔한 세팅', 2, MINI_BASE, { prizeMix: MINI_CHARACTERS }),
   preset('작은 박스', '흔한 세팅', 2, MINI_BASE, { prizeMix: SMALL_BOXES }),
   preset('캡슐', '흔한 세팅', 2, MINI_BASE, { prizeMix: CAPSULES }),
 ];

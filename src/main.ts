@@ -50,7 +50,8 @@ orbit.enabled = false;
 // ---------- 저장된 설정 ----------
 const panelState: PanelState = { real: false, presetIndex: 0, showCom: false, showAim: true, showZone: true };
 // 연습 모드 세팅은 기계마다 저장한다 (실전 모드 기계는 매번 새로 뽑으므로 저장하지 않음)
-const SETTINGS_KEY = 'clawsim-settings-v8';
+// 기계별 세팅은 기계 이름으로 저장한다 (기계가 추가돼 순서가 바뀌어도 제 기계에 붙게)
+const SETTINGS_KEY = 'clawsim-settings-v9';
 type Saved = { showCom: boolean; showAim: boolean; showZone: boolean; muted: boolean; machines: Record<string, MachineSettings> };
 let saved: Partial<Saved> = {};
 try {
@@ -64,7 +65,7 @@ const sound = new Sound(!!saved.muted);
 
 function loadPractice(i: number): MachineSettings {
   const base = cloneSettings(PRESETS[i].settings);
-  const sv = saved.machines?.[i];
+  const sv = saved.machines?.[PRESETS[i].name];
   // 기계 종류가 같을 때만 복원 (예전 버전 저장값에 없는 항목은 프리셋 값 유지)
   if (!sv || sv.kind !== base.kind) return base;
   return { ...base, ...sv, prizeMix: { ...base.prizeMix, ...sv.prizeMix } };
@@ -75,7 +76,7 @@ buildRoom(scene);
 const machines = createMachines(scene, loadPractice);
 const saveSettings = () => {
   const saved: Record<string, MachineSettings> = {};
-  for (const m of machines) saved[m.index] = m.practice;
+  for (const m of machines) saved[m.preset.name] = m.practice;
   const sv: Saved = { showCom: panelState.showCom, showAim: panelState.showAim, showZone: panelState.showZone, muted: sound.muted, machines: saved };
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(sv)); } catch { /* 무시 */ }
 };
@@ -124,6 +125,7 @@ const hud = new Hud(document.getElementById('app')!, {
   mute: () => toggleMute(),
   enter: () => enterNear(),
   leave: () => leaveMachine(),
+  resetAll: () => resetAllMachines(),
 });
 hud.setMuted(sound.muted);
 
@@ -239,6 +241,18 @@ function leaveMachine() {
   lobby.setVisible(true);
   hud.showLobby();
   hud.setMode(panelState.real, '오락실');
+}
+
+/** 모든 기계의 연습 세팅을 프리셋 기본값으로 (기계는 다음에 들어갈 때 새로 만든다) */
+function resetAllMachines() {
+  for (const m of machines) {
+    m.practice = cloneSettings(m.preset.settings);
+    if (!panelState.real) m.settings = m.practice;
+    m.dirty = true;
+  }
+  lobby.refreshSigns(panelState.real);
+  saveSettings();
+  hud.toast('모든 기계 세팅을 기본값으로 되돌렸어요');
 }
 
 function rebuildCurrent() {
