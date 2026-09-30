@@ -127,7 +127,7 @@ export class Claw {
       const axis = new THREE.Vector3(-Math.sin(phi), 0, Math.cos(phi));
       const hinge = new THREE.Vector3(rH * radial.x, -this.hubHH, rH * radial.z);
       const toBody = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -phi);
-      const canon: Part[] = [
+      const canon: Part[] = g.clawStyle === 'wire' ? wireFinger(L) : [
         { shape: { type: 'cuboid', hx: t, hy: 0.3 * L, hz: t * 1.6 }, pos: [0, -0.3 * L, 0] },
         { shape: { type: 'cuboid', hx: t, hy: 0.225 * L, hz: t * 1.4 }, pos: [-0.145 * L, -0.772 * L, 0], rot: [0, 0, -0.7] },
         { shape: { type: 'ball', r: t * 1.4 }, pos: [-0.29 * L, -0.945 * L, 0] },
@@ -311,4 +311,28 @@ export class Claw {
     for (const s of this.synced) this.scene.remove(s.obj);
     void this.world;
   }
+}
+
+/**
+ * 미니 기계의 가는 철사 집게 발: 경첩에서 아래로 내려가며 바깥으로 살짝 휘었다가 끝이 안쪽(-x)으로 굽는다.
+ * 곡선을 따라 짧은 캡슐을 이어 만든다 (겉모습과 충돌 모양이 같다).
+ */
+function wireFinger(L: number): Part[] {
+  const r = 0.028 * L;
+  const pt = (u: number) => new THREE.Vector2(0.1 * L * Math.sin(Math.PI * u * 0.8) - 0.4 * L * u ** 4, -0.97 * L * u);
+  const parts: Part[] = [];
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const a = pt(i / n), b = pt((i + 1) / n);
+    const d = b.clone().sub(a);
+    const len = d.length();
+    parts.push({
+      shape: { type: 'capsule', hh: len / 2, r },
+      pos: [(a.x + b.x) / 2, (a.y + b.y) / 2, 0],
+      rot: [0, 0, Math.atan2(-d.x, d.y)],
+    });
+  }
+  // 경첩 쪽 받침판
+  parts.push({ shape: { type: 'cuboid', hx: r * 1.4, hy: 0.06 * L, hz: r * 2.5 }, pos: [0, -0.04 * L, 0] });
+  return parts;
 }

@@ -10,7 +10,7 @@ export type PrizeKind =
   | 'miniDoll' | 'miniBear' | 'miniBigBear' | 'miniRabbit' | 'miniCat'
   | 'ribbonCat' | 'pinkHoodRabbit' | 'blackHoodRabbit' | 'cloudPuppy' | 'beretPuppy'
   | 'miniRibbonCat' | 'miniPinkHoodRabbit' | 'miniBlackHoodRabbit' | 'miniCloudPuppy' | 'miniBeretPuppy'
-  | 'smallBox' | 'capsule';
+  | 'siliconeKeyring' | 'smallBox' | 'capsule';
 
 /** 기계 크기별 고정 치수 (m). 세팅 패널에서 바꾸지 않는 값. */
 export interface MachineGeometry {
@@ -24,18 +24,19 @@ export interface MachineGeometry {
   fingerMass: number;
   moveAccel: number;   // 갠트리 가감속 (m/s²)
   moveSmooth: number;  // 가속도를 올리고 내리는 시간 (s). 0이면 급출발·급정지
+  clawStyle: 'block' | 'wire'; // 집게 발 모양: 굵은 판 / 가는 철사가 휜 모양 (미니 기계)
   swingStiff: number;  // 집게를 수직으로 되돌리는 힘 (중력의 몇 배). 0이면 그냥 매달린 진자 (잘 흔들림)
 }
 
 export const GEOMETRY: Record<MachineKind, MachineGeometry> = {
   regular: {
     width: 0.8, depth: 0.7, height: 0.95, chuteSize: 0.24,
-    prongLength: 0.13, fullTorque: 0.8, hubMass: 0.6, fingerMass: 0.03, moveAccel: 1.0, moveSmooth: 0, swingStiff: 0,
+    prongLength: 0.13, fullTorque: 0.8, hubMass: 0.6, fingerMass: 0.03, moveAccel: 1.0, moveSmooth: 0, swingStiff: 0, clawStyle: 'block',
   },
   mini: {
     // 실제 미니 기계 사진 기준: 12~15cm 키링 인형이 빽빽하고, 배출구는 인형 하나가 들어갈 만큼, 집게 발은 가늘고 길다
     width: 0.46, depth: 0.42, height: 0.5, chuteSize: 0.16,
-    prongLength: 0.08, fullTorque: 0.09, hubMass: 0.14, fingerMass: 0.006, moveAccel: 0.8, moveSmooth: 0, swingStiff: 10,
+    prongLength: 0.08, fullTorque: 0.09, hubMass: 0.14, fingerMass: 0.006, moveAccel: 0.8, moveSmooth: 0, swingStiff: 10, clawStyle: 'wire',
   },
 };
 
@@ -138,6 +139,7 @@ const MINI_CHARACTERS = { miniRibbonCat: 5, miniPinkHoodRabbit: 5, miniBlackHood
 // 미니 인형 기계의 배출구 가드: 투명 아크릴, 누운 인형 한 개 높이쯤
 const MINI_DOLL_GUARD = 0.085;
 const SMALL_BOXES = { smallBox: 18 };
+const SILICONE_KEYRINGS = { siliconeKeyring: 28 };
 const CAPSULES = { capsule: 20 };
 
 // 강집게 주기 무작위(±25%)는 쉬움 기계에만. 나머지는 연습하기 좋게 정확히 N판마다
@@ -156,6 +158,7 @@ export const PRESETS: Preset[] = [
   preset('미니 인형', '짠물 기계', 3, MINI_BASE, MINI_STINGY),
   preset('미니 인형', '연습용 강집게', 1, MINI_BASE, { ...STRONG, guardHeight: MINI_DOLL_GUARD }),
   preset('미니 캐릭터', '흔한 세팅', 2, MINI_BASE, { prizeMix: MINI_CHARACTERS, guardHeight: MINI_DOLL_GUARD }),
+  preset('실리콘 키링', '흔한 세팅', 2, MINI_BASE, { prizeMix: SILICONE_KEYRINGS, guardHeight: 0.05 }),
   preset('작은 박스', '흔한 세팅', 2, MINI_BASE, { prizeMix: SMALL_BOXES }),
   preset('캡슐', '흔한 세팅', 2, MINI_BASE, { prizeMix: CAPSULES }),
 ];

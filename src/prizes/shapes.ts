@@ -253,6 +253,79 @@ function beretPuppy(): Build {
   return { parts, limbs: [] };
 }
 
+
+/** 부품 목록을 dy만큼 위로 옮긴다 */
+const lift = (parts: Part[], dy: number): Part[] => parts.map((p) => ({ ...p, pos: [p.pos?.[0] ?? 0, (p.pos?.[1] ?? 0) + dy, p.pos?.[2] ?? 0] as V3 }));
+
+/** 부품들이 차지하는 가장 높은 곳 (대략) */
+function topOf(parts: Part[]): number {
+  let top = 0;
+  for (const p of parts) {
+    const s = p.shape;
+    const h = s.type === 'ball' ? s.r : s.type === 'capsule' ? s.hh + s.r : s.type === 'cylinder' ? s.hh : s.hy;
+    top = Math.max(top, (p.pos?.[1] ?? 0) + h);
+  }
+  return top;
+}
+
+/**
+ * 미니 인형에 달린 종이 택 또는 키링 줄 (실제 미니 기계 인형은 둘 중 하나가 꼭 달려 있다).
+ * 키링 줄은 금속 고리 때문에 인형만큼 무거워서, 옮길 때 가드에 걸리면 인형을 뒤로 끌어당긴다.
+ * 반환: 관절로 매달 부위와 그 무게(kg)
+ */
+export function tagAttachment(parts: Part[], dollMass: number): { limb: LimbDef; mass: number } {
+  const anchor: V3 = [0, topOf(parts) * 0.92, 0];
+  const loose = { axis: [1, 0, 0] as V3, massRatio: 0, stiffness: 0, damping: 0.0004, limits: [-2.9, 2.9] as [number, number] };
+  if (Math.random() < 0.6) {
+    const strap = [0x4dabf7, 0xf783ac, 0xffd43b, 0x69db7c][Math.floor(Math.random() * 4)];
+    const gold = 0xd4af37;
+    return {
+      mass: dollMass * 0.7,
+      limb: {
+        ...loose, anchor,
+        parts: [
+          { shape: CAP(0.016, 0.0035), pos: [0, 0.016, 0], color: strap, mat: 'plastic' },
+          { shape: { type: 'cuboid', hx: 0.004, hy: 0.007, hz: 0.003 }, pos: [0, 0.038, 0], color: gold, mat: 'metal' },
+          ...lift(ringParts(0.01, 0.0017, gold), 0.044),
+        ],
+      },
+    };
+  }
+  const card = [0x3b5bdb, 0x7048e8, 0xf8f9fa][Math.floor(Math.random() * 3)];
+  return {
+    mass: dollMass * 0.08,
+    limb: {
+      ...loose, anchor,
+      parts: [
+        { shape: CAP(0.01, 0.0012), pos: [0, 0.01, 0], color: 0xffffff, mat: 'plastic' },
+        { shape: { type: 'cuboid', hx: 0.02, hy: 0.028, hz: 0.0012 }, pos: [0, 0.048, 0], color: card, mat: 'box' },
+        { shape: { type: 'cuboid', hx: 0.016, hy: 0.004, hz: 0.0014 }, pos: [0, 0.058, 0], color: 0xffd43b, mat: 'box', visualOnly: true },
+      ],
+    },
+  };
+}
+
+/** 실리콘 키링: 작은 치즈 블록 캐릭터 + 긴 실리콘 줄 + 금속 고리 */
+function siliconeKeyring(c: number): Build {
+  const strap = [0xf783ac, 0xb2f2bb, 0xffe066, 0xd0bfff][Math.floor(Math.random() * 4)];
+  const parts: Part[] = [
+    { shape: RC(0.02, 0.016, 0.011, 0.006), pos: [0, 0.016, 0], color: c, mat: 'plastic' },
+    ...eyes(0.02, 0.011, 0.007, 0.0035),
+    { shape: S(0.004), pos: [0, 0.012, 0.011], color: 0xff8fab, mat: 'plastic', visualOnly: true },
+    { shape: S(0.003), pos: [-0.012, 0.024, 0.01], color: 0x000000, mat: 'dark', visualOnly: true },
+    { shape: S(0.0025), pos: [0.013, 0.008, 0.01], color: 0x000000, mat: 'dark', visualOnly: true },
+  ];
+  const limb: LimbDef = {
+    anchor: [0, 0.03, 0], axis: [1, 0, 0], massRatio: 0.45, stiffness: 0, damping: 0.0004, limits: [-2.9, 2.9],
+    parts: [
+      { shape: RC(0.009, 0.05, 0.0025, 0.002), pos: [0, 0.05, 0], color: strap, mat: 'plastic' },
+      { shape: { type: 'cylinder', hh: 0.003, r: 0.0035 }, pos: [0, 0.097, 0], rot: [Math.PI / 2, 0, 0], color: 0xced4da, mat: 'metal', visualOnly: true },
+      ...lift(ringParts(0.011, 0.0018, 0xd4af37), 0.1),
+    ],
+  };
+  return { parts, limbs: [limb] };
+}
+
 const CHAR_TIP = {
   cat: '머리가 넓고 무거워서 몸통보다 머리 아래(목)를 감싸야 안 빠져요. 리본 쪽이 살짝 더 무거워요.',
   rabbit: '긴 귀가 걸기 포인트예요. 귀 밑에 발 하나만 걸려도 딸려 올라와요.',
@@ -448,6 +521,12 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
     kind: 'miniBeretPuppy', name: '미니 베레모 강아지', category: 'plush', mass: 0.049, friction: 1.05, restitution: 0.05,
     size: 0.06, stack: 0.09, machines: ['mini'], colors: [0xf7d774],
     tip: CHAR_TIP.beret, build: () => scaled(0.6, beretPuppy)(0),
+  },
+  siliconeKeyring: {
+    kind: 'siliconeKeyring', name: '실리콘 키링', category: 'box', mass: 0.03, friction: 0.8, restitution: 0.15,
+    size: 0.055, stack: 0.03, machines: ['mini'], colors: [0xffd43b, 0xff8fab, 0x9ad0f5, 0xb2f2bb],
+    tip: '몸통은 작고 딱딱해서 직접 집기 어려워요. 긴 줄이나 고리에 발 하나만 걸면 딸려 올라와요.',
+    build: (c) => siliconeKeyring(c),
   },
   smallBox: {
     kind: 'smallBox', name: '미니 상자', category: 'box', mass: 0.035, friction: 0.38, restitution: 0.1,

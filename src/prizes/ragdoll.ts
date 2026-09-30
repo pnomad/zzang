@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RAPIER, GROUP_PRIZE, type Synced } from '../physics/world';
 import { attachParts, resizeCollider, shrinkShape, type Shape, type V3 } from '../physics/parts';
-import { PRIZES, type PrizeDef } from './shapes';
+import { PRIZES, tagAttachment, type LimbDef, type PrizeDef } from './shapes';
 import type { PrizeKind } from '../machine/settings';
 
 /** 경품 하나 = 몸통 강체 + 스프링 관절로 연결된 부위(팔/귀/고리) 강체들 */
@@ -73,7 +73,17 @@ export function spawnPrize(
     squashNode,
   };
 
-  for (const limb of limbs) {
+  // 미니 기계 인형에는 종이 택이나 키링 줄이 꼭 달려 있다 (몸통 무게와 별도로 더해진다)
+  const extra: { limb: LimbDef; mass: number }[] = [];
+  if (def.category === 'plush' && def.machines.length === 1 && def.machines[0] === 'mini') {
+    extra.push(tagAttachment(parts, def.mass));
+  }
+  const allLimbs = [
+    ...limbs.map((limb) => ({ limb, mass: limb.massRatio * def.mass, core: common.core })),
+    ...extra.map((e) => ({ ...e, core: 1 })), // 줄·택·고리는 말랑하지 않다
+  ];
+
+  for (const { limb, mass, core } of allLimbs) {
     const anchorWorld = new THREE.Vector3(...limb.anchor).applyQuaternion(rot).add(pos);
     const body = world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
@@ -81,7 +91,7 @@ export function spawnPrize(
         .setRotation({ x: rot.x, y: rot.y, z: rot.z, w: rot.w })
         .setAngularDamping(0.5),
     );
-    const l = attachParts(world, body, limb.parts, { ...common, mass: limb.massRatio * def.mass });
+    const l = attachParts(world, body, limb.parts, { ...common, core, mass });
     scene.add(l.group);
     const axis = new THREE.Vector3(...limb.axis);
     const jd = RAPIER.JointData.revolute(

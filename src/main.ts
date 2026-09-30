@@ -51,7 +51,7 @@ orbit.enabled = false;
 const panelState: PanelState = { real: false, presetIndex: 0, showCom: false, showAim: true, showZone: true };
 // 연습 모드 세팅은 기계마다 저장한다 (실전 모드 기계는 매번 새로 뽑으므로 저장하지 않음)
 // 기계별 세팅은 기계 이름으로 저장한다 (기계가 추가돼 순서가 바뀌어도 제 기계에 붙게)
-const SETTINGS_KEY = 'clawsim-settings-v10';
+const SETTINGS_KEY = 'clawsim-settings-v11';
 type Saved = { showCom: boolean; showAim: boolean; showZone: boolean; muted: boolean; machines: Record<string, MachineSettings> };
 let saved: Partial<Saved> = {};
 try {
