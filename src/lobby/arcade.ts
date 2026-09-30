@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PRESETS, type MachineSettings, type Preset } from '../machine/settings';
 import { Rig } from '../game/rig';
+import type { PayoutState } from '../game/controller';
 
 /**
  * 오락실의 기계 한 대. 오락실은 2D 화면(lobby2d)에서 걸어 다니고,
@@ -19,7 +20,7 @@ export class ArcadeMachine {
   practice: MachineSettings;
   /** 지금 적용 중인 세팅 (실전 모드면 무작위로 숨겨진 세팅) */
   settings: MachineSettings;
-  readonly payout = { playsSinceWin: 0, spentSinceWin: 0 };
+  readonly payout: PayoutState = { playsSinceWin: 0, spentSinceWin: 0 };
   private extras: THREE.Object3D[] = [];
 
   constructor(readonly index: number, readonly preset: Preset, practice: MachineSettings) {
@@ -41,6 +42,7 @@ export class ArcadeMachine {
     this.extras = [];
     this.payout.playsSinceWin = 0;
     this.payout.spentSinceWin = 0;
+    this.payout.target = undefined;
     this.dirty = false;
 
     const rig = (this.rig = new Rig(this.group, this.settings));

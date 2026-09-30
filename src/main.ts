@@ -50,7 +50,7 @@ orbit.enabled = false;
 // ---------- 저장된 설정 ----------
 const panelState: PanelState = { real: false, presetIndex: 0, showCom: false, showAim: true, showZone: true };
 // 연습 모드 세팅은 기계마다 저장한다 (실전 모드 기계는 매번 새로 뽑으므로 저장하지 않음)
-const SETTINGS_KEY = 'clawsim-settings-v5';
+const SETTINGS_KEY = 'clawsim-settings-v6';
 type Saved = { showCom: boolean; showAim: boolean; showZone: boolean; muted: boolean; machines: Record<string, MachineSettings> };
 let saved: Partial<Saved> = {};
 try {
@@ -289,8 +289,13 @@ function onResult(r: AttemptResult) {
 function revealSettings() {
   if (!cur) return;
   const s = cur.settings;
-  const payoutText = s.payoutMode === 'everyN' ? `${s.payoutN}판마다 강집게(${s.strongPower}%)`
-    : s.payoutMode === 'amount' ? `₩${s.payoutAmount.toLocaleString('ko-KR')} 쓸 때마다 강집게(${s.strongPower}%)` : '없음';
+  const spread = s.payoutSpread ? ` ±${s.payoutSpread}%` : '';
+  const t = cur.payout.target;
+  const payoutText = s.payoutMode === 'everyN'
+    ? `약 ${s.payoutN}판${spread}마다 강집게(${s.strongPower}%)${t ? `, 이번 주기는 ${t.plays}판째` : ''}`
+    : s.payoutMode === 'amount'
+      ? `약 ₩${s.payoutAmount.toLocaleString('ko-KR')}${spread} 쓸 때마다 강집게(${s.strongPower}%)${t ? `, 이번 주기는 ₩${t.amount.toLocaleString('ko-KR')}` : ''}`
+      : '없음';
   const r: AttemptResult = {
     success: false, cause: 'miss', title: '이 기계의 실제 세팅', wonKinds: [], strongTurn: false, trace: [],
     detail: `집을 때 ${s.grabPower}% → 올라갈 때 ${s.liftPower}% → 꼭대기 ${s.topPower}% → 이동 중 ${s.returnPower}%`,

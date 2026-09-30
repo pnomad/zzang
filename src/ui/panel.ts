@@ -82,8 +82,9 @@ export class Panel {
     power.add(s, 'nearChutePower', 0, 100, 1).name('배출구 바로 위 힘 (평소의 %)').onChange(h.live);
 
     const payout = gui.addFolder('확률 (페이아웃)');
-    payout.add(s, 'payoutMode', { '없음': 'none', 'N판마다 강집게': 'everyN', '누적 금액마다 강집게': 'amount' }).name('방식');
-    payout.add(s, 'payoutN', 2, 40, 1).name('N판');
+    payout.add(s, 'payoutMode', { '없음': 'none', '약 N판마다 강집게': 'everyN', '누적 금액마다 강집게': 'amount' }).name('방식');
+    payout.add(s, 'payoutN', 2, 60, 1).name('N판 (평균)');
+    payout.add(s, 'payoutSpread', 0, 60, 1).name('주기 편차 ±%');
     payout.add(s, 'payoutAmount', 1000, 100000, 1000).name('누적 금액 (원)');
     payout.add(s, 'strongPower', 0, 100, 1).name('강집게 힘 %');
 

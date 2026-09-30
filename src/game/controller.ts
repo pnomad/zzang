@@ -1,5 +1,6 @@
 import { DT } from '../physics/world';
 import type { Rig } from './rig';
+import { drawPayoutTarget } from '../machine/settings';
 import { AttemptTracker, Recorder, type AttemptResult, type Phase } from './analysis';
 
 export interface Input {
@@ -13,6 +14,8 @@ export interface Input {
 export interface PayoutState {
   playsSinceWin: number;
   spentSinceWin: number;
+  /** 이번 주기에 강집게가 나올 판 수·금액 (주기 시작 때 무작위로 정함) */
+  target?: { plays: number; amount: number };
 }
 
 /** 한 판의 진행: 대기 → 이동 → 하강 → 집기 → 상승 → 꼭대기 → 복귀 → 개방 → 결과 */
@@ -53,11 +56,14 @@ export class Controller {
     // 지난 판에 뽑힌 경품 정리
     for (const p of this.rig.prizes.filter((q) => q.won)) this.rig.removePrizeObj(p);
     const s = this.s;
-    this.payout.playsSinceWin++;
-    this.payout.spentSinceWin += s.price;
+    const pay = this.payout;
+    // 이번 주기에 강집게가 나올 판(금액)은 주기가 시작될 때 기준값 근처에서 무작위로 정해진다
+    if (!pay.target) pay.target = drawPayoutTarget(s);
+    pay.playsSinceWin++;
+    pay.spentSinceWin += s.price;
     this.strongTurn =
-      (s.payoutMode === 'everyN' && this.payout.playsSinceWin >= s.payoutN) ||
-      (s.payoutMode === 'amount' && this.payout.spentSinceWin >= s.payoutAmount);
+      (s.payoutMode === 'everyN' && pay.playsSinceWin >= pay.target.plays) ||
+      (s.payoutMode === 'amount' && pay.spentSinceWin >= pay.target.amount);
     this.tracker = new AttemptTracker(this.rig.world, this.rig.prizes, this.rig.claw, this.rig.cabinet, this.strongTurn,
       (x, z) => this.zoneFactor(x, z));
     this.recorder.begin(this.rig.synced);
@@ -183,9 +189,11 @@ export class Controller {
   private finish() {
     this.idleClaw();
     const r = this.tracker!.finish();
-    if (r.success) {
+    // 뽑았거나 강집게 판이 지나가면 새 주기 (다음 강집게 판을 다시 무작위로)
+    if (r.success || this.strongTurn) {
       this.payout.playsSinceWin = 0;
       this.payout.spentSinceWin = 0;
+      this.payout.target = undefined;
     }
     this.go('result');
     this.onResult(r);

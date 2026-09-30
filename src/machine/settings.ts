@@ -52,7 +52,8 @@ export interface MachineSettings {
   nearChutePower: number;  // 배출구 바로 위에서의 힘 (평소 힘의 %)
   // 확률(페이아웃)
   payoutMode: PayoutMode;
-  payoutN: number;         // N번째 판마다 강집게
+  payoutN: number;         // 대략 N번째 판마다 강집게
+  payoutSpread: number;    // 강집게 주기(판 수·금액)의 무작위 편차 (±%). 0이면 정확히 N판마다
   payoutAmount: number;    // 누적 금액(원) 넘으면 강집게
   strongPower: number;     // 강집게 판의 힘 (%)
   // 움직임
@@ -83,7 +84,8 @@ const REGULAR_BASE: MachineSettings = {
   nearChuteRange: 0.2,
   nearChutePower: 55,
   payoutMode: 'everyN',
-  payoutN: 12,
+  payoutN: 20,
+  payoutSpread: 25,
   payoutAmount: 20000,
   strongPower: 100,
   moveSpeed: 0.22,
@@ -109,8 +111,8 @@ const MINI_BASE: MachineSettings = {
   liftSpeed: 0.17,
   nearChuteRange: 0.1,
   swingDamping: 12,        // 미니는 줄이 짧고 집게가 거의 고정되어 있어 거의 안 흔들린다 (1~2° 이내)
-  payoutN: 8,
-  payoutAmount: 8000,
+  payoutN: 20,
+  payoutAmount: 10000,
   price: 500,
   prizeMix: { miniDoll: 10, keyring: 6 },
 };
@@ -120,8 +122,8 @@ export interface Preset { name: string; title: string; difficulty: 1 | 2 | 3; se
 
 // 실제 오락실처럼 한 기계에는 비슷한 크기의 경품만 넣는다 (일반 인형 / 큰 인형 / 큰 박스 / 미니 인형 / 작은 박스 / 캡슐)
 const STRONG = { grabPower: 100, liftPower: 100, topPower: 100, returnPower: 100, nearChutePower: 100, payoutMode: 'none' as const };
-const REGULAR_STINGY = { liftPower: 30, topPower: 12, returnPower: 10, payoutN: 20, guardHeight: 0.11, nearChuteRange: 0.28, nearChutePower: 35 };
-const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 15, guardHeight: 0.05, nearChuteRange: 0.14, nearChutePower: 35 };
+const REGULAR_STINGY = { liftPower: 30, topPower: 12, returnPower: 10, payoutN: 30, payoutAmount: 30000, guardHeight: 0.11, nearChuteRange: 0.28, nearChutePower: 35 };
+const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 30, payoutAmount: 15000, guardHeight: 0.05, nearChuteRange: 0.14, nearChutePower: 35 };
 const BIG_DOLLS = { bigBear: 3, longCat: 4 };
 const BIG_BOXES = { figureBox: 8, snackBox: 8 };
 const SMALL_BOXES = { smallBox: 18 };
@@ -159,8 +161,9 @@ export function randomizeForRealMode(base: MachineSettings): MachineSettings {
   s.topPower = randInt(8, Math.min(45, s.liftPower));
   s.returnPower = randInt(6, Math.min(40, s.topPower + 10));
   s.payoutMode = Math.random() < 0.8 ? 'everyN' : 'amount';
-  s.payoutN = randInt(6, 20);
-  s.payoutAmount = s.price * randInt(8, 25);
+  s.payoutN = randInt(12, 32);
+  s.payoutSpread = randInt(15, 35);
+  s.payoutAmount = s.price * randInt(12, 32);
   s.strongPower = randInt(85, 100);
   s.dropDepth = rand(0.8, 1);
   s.swingDamping = s.kind === 'regular' ? rand(0.3, 1) : rand(10, 14);
@@ -170,4 +173,13 @@ export function randomizeForRealMode(base: MachineSettings): MachineSettings {
   s.nearChuteRange = Math.random() < 0.15 ? 0 : (s.kind === 'regular' ? rand(0.12, 0.3) : rand(0.06, 0.15));
   s.nearChutePower = randInt(25, 75);
   return s;
+}
+
+/** 다음 강집게까지의 판 수(또는 금액)를 기준값 ± 편차 안에서 무작위로 뽑는다 */
+export function drawPayoutTarget(s: MachineSettings): { plays: number; amount: number } {
+  const jitter = () => 1 + (s.payoutSpread / 100) * (Math.random() * 2 - 1);
+  return {
+    plays: Math.max(1, Math.round(s.payoutN * jitter())),
+    amount: Math.max(s.price, Math.round((s.payoutAmount * jitter()) / s.price) * s.price),
+  };
 }
