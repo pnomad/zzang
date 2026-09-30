@@ -147,11 +147,12 @@ const UP = new THREE.Vector3(0, 1, 0);
  */
 export function updateSquashVisual(p: Prize) {
   const node = p.squashNode;
-  const k = p.squish;
-  if (k >= 1) {
+  if (p.squish >= 1) {
     if (!node.matrix.equals(IDENTITY)) { node.matrix.identity(); node.matrixWorldNeedsUpdate = true; }
     return;
   }
+  // 겉모습은 살짝만 눌린다 (충돌 모양은 배출구를 빠져나갈 만큼 줄지만, 보기에는 최대 약 12%만 납작하게)
+  const k = 1 - (1 - p.squish) * 0.25;
   const r = p.main.rotation();
   const u = UP.clone().applyQuaternion(new THREE.Quaternion(r.x, r.y, r.z, r.w).invert()); // 몸통 기준 수직 방향
   const side = 1 + (1 - k) * 0.3;

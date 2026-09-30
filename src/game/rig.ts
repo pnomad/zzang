@@ -124,8 +124,8 @@ export class Rig {
     const resting = claw.resting;
     for (const p of this.prizes) {
       if (p.won || p.def.category !== 'plush') continue;
-      // 배출구에 걸쳤거나 바로 옆에 있는 인형만 (다른 곳에서 집을 때의 말랑함은 속심 크기가 맡는다)
-      const t = p.main.translation(), c = this.cabinet, pad = p.def.size;
+      // 배출구에 걸친 인형만 (몸 중심이 배출구 가장자리에서 몸 반 크기 안쪽). 다른 곳에서 집을 때의 말랑함은 속심 크기가 맡는다
+      const t = p.main.translation(), c = this.cabinet, pad = p.def.size * 0.5;
       const atChute = t.x > c.chuteMin.x - pad && t.x < c.chuteMax.x + pad && t.z > c.chuteMin.y - pad && t.z < c.chuteMax.y + pad;
       // 집게와 인형의 접촉은 스텝마다 끊겼다 이어지므로 0.3초 동안은 눌린 것으로 본다
       if (atChute && resting && touchingHandles(this.world, p, claw.colliderHandles)) p.pressHold = 0.3;

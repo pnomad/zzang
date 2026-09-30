@@ -127,7 +127,6 @@ const MINI_BASE: MachineSettings = {
 export interface Preset { name: string; title: string; difficulty: 1 | 2 | 3; settings: MachineSettings; }
 
 // 실제 오락실처럼 한 기계에는 비슷한 크기의 경품만 넣는다 (일반 인형 / 큰 인형 / 큰 박스 / 미니 인형 / 작은 박스 / 캡슐)
-const STRONG = { grabPower: 100, liftPower: 100, topPower: 100, returnPower: 100, nearChutePower: 100, payoutMode: 'none' as const };
 const REGULAR_STINGY = { liftPower: 30, topPower: 12, returnPower: 10, payoutN: 30, payoutAmount: 30000, guardHeight: 0.11, nearChuteRange: 0.28, nearChutePower: 35 };
 const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 30, payoutAmount: 15000, guardHeight: 0.1, nearChuteRange: 0.14, nearChutePower: 35 };
 const BIG_DOLLS = { bigBear: 3, longCat: 4 };
@@ -149,14 +148,12 @@ const preset = (title: string, level: string, difficulty: Preset['difficulty'], 
 export const PRESETS: Preset[] = [
   preset('일반 인형', '흔한 세팅', 2, REGULAR_BASE, {}),
   preset('일반 인형', '짠물 기계', 3, REGULAR_BASE, REGULAR_STINGY),
-  preset('일반 인형', '연습용 강집게', 1, REGULAR_BASE, STRONG),
   preset('큰 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_DOLLS, guardHeight: BIG_DOLL_GUARD }),
   preset('캐릭터 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: CHARACTERS }),
   preset('큰 박스', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_BOXES }),
   preset('큰 박스', '짠물 기계', 3, REGULAR_BASE, { ...REGULAR_STINGY, prizeMix: BIG_BOXES }),
   preset('미니 인형', '흔한 세팅', 2, MINI_BASE, { guardHeight: MINI_DOLL_GUARD }),
   preset('미니 인형', '짠물 기계', 3, MINI_BASE, MINI_STINGY),
-  preset('미니 인형', '연습용 강집게', 1, MINI_BASE, { ...STRONG, guardHeight: MINI_DOLL_GUARD }),
   preset('미니 캐릭터', '흔한 세팅', 2, MINI_BASE, { prizeMix: MINI_CHARACTERS, guardHeight: MINI_DOLL_GUARD }),
   preset('실리콘 키링', '흔한 세팅', 2, MINI_BASE, { prizeMix: SILICONE_KEYRINGS, guardHeight: 0.05 }),
   preset('작은 박스', '흔한 세팅', 2, MINI_BASE, { prizeMix: SMALL_BOXES }),
