@@ -135,8 +135,10 @@ export class Rig {
       const full = 23 * p.def.size;
       const target = pressed ? 1 - SOFT * Math.min(1, claw.weight / full) : 1;
       // 눌릴 때는 빨리, 부풀 때는 천천히
-      const rate = target < p.squish ? 10 : 1.2;
-      let k = p.squish + (target - p.squish) * Math.min(1, dt * rate);
+      // 눌릴 때는 빨리, 부풀 때는 한 스텝에 조금씩만 (한꺼번에 커지면 바닥·벽에 박혀 튕겨 나간다)
+      let k = target < p.squish
+        ? p.squish + (target - p.squish) * Math.min(1, dt * 10)
+        : p.squish + Math.min(0.004, (target - p.squish) * Math.min(1, dt * 0.8));
       if (Math.abs(k - 1) < 0.003) k = 1;
       setSquish(p, k);
       updateSquashVisual(p);

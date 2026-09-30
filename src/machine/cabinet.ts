@@ -66,6 +66,10 @@ export function buildCabinet(
   // 경품 바닥 (배출구 부분이 뚫린 2조각)
   staticBox(W / 2, t, (D - C) / 2, 0, -t, -C / 2, floorMat, 0.7);
   staticBox((W - C) / 2, t, C / 2, x0 + C + (W - C) / 2, -t, z1 - C / 2, floorMat, 0.7);
+  // 보이는 바닥판은 얇지만, 충돌판은 아래로 두껍게 둔다 (경품이 바닥에 파묻혔다 밀려날 때 아래로 빠지지 않게)
+  const ft = 0.15;
+  staticBox(W / 2, ft, (D - C) / 2, 0, -2 * t - ft, -C / 2, null, 0.7);
+  staticBox((W - C) / 2, ft, C / 2, x0 + C + (W - C) / 2, -2 * t - ft, z1 - C / 2, null, 0.7);
 
   // 외벽 (유리)
   const wallBottom = binY - 0.05;

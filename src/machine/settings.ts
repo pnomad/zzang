@@ -33,8 +33,9 @@ export const GEOMETRY: Record<MachineKind, MachineGeometry> = {
     prongLength: 0.13, fullTorque: 0.8, hubMass: 0.6, fingerMass: 0.03, moveAccel: 1.0, moveSmooth: 0, swingStiff: 0,
   },
   mini: {
-    width: 0.42, depth: 0.38, height: 0.5, chuteSize: 0.13,
-    prongLength: 0.065, fullTorque: 0.07, hubMass: 0.12, fingerMass: 0.006, moveAccel: 0.8, moveSmooth: 0, swingStiff: 10,
+    // 실제 미니 기계 사진 기준: 12~15cm 키링 인형이 빽빽하고, 배출구는 인형 하나가 들어갈 만큼, 집게 발은 가늘고 길다
+    width: 0.46, depth: 0.42, height: 0.5, chuteSize: 0.16,
+    prongLength: 0.08, fullTorque: 0.09, hubMass: 0.14, fingerMass: 0.006, moveAccel: 0.8, moveSmooth: 0, swingStiff: 10,
   },
 };
 
@@ -118,7 +119,7 @@ const MINI_BASE: MachineSettings = {
   payoutAmount: 10000,
   price: 500,
   // 미니 인형 기계도 크기가 제각각인 인형이 섞여 있다
-  prizeMix: { miniDoll: 4, miniBear: 4, miniBigBear: 2, miniRabbit: 3, miniCat: 2, keyring: 3 },
+  prizeMix: { miniDoll: 6, miniBear: 5, miniBigBear: 3, miniRabbit: 5, miniCat: 3, keyring: 4 },
 };
 
 /** difficulty: 1 쉬움 ~ 3 어려움. 오락실 기계 위 간판에 표시된다. */
@@ -127,13 +128,15 @@ export interface Preset { name: string; title: string; difficulty: 1 | 2 | 3; se
 // 실제 오락실처럼 한 기계에는 비슷한 크기의 경품만 넣는다 (일반 인형 / 큰 인형 / 큰 박스 / 미니 인형 / 작은 박스 / 캡슐)
 const STRONG = { grabPower: 100, liftPower: 100, topPower: 100, returnPower: 100, nearChutePower: 100, payoutMode: 'none' as const };
 const REGULAR_STINGY = { liftPower: 30, topPower: 12, returnPower: 10, payoutN: 30, payoutAmount: 30000, guardHeight: 0.11, nearChuteRange: 0.28, nearChutePower: 35 };
-const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 30, payoutAmount: 15000, guardHeight: 0.05, nearChuteRange: 0.14, nearChutePower: 35 };
+const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 30, payoutAmount: 15000, guardHeight: 0.1, nearChuteRange: 0.14, nearChutePower: 35 };
 const BIG_DOLLS = { bigBear: 3, longCat: 4 };
 // 큰 인형 기계는 배출구 가드가 인형 몸 높이(놓인 상태 약 22.5cm)보다 10% 높다: 밀어 넣기는 안 되고 들어서 넘겨야 한다
 const BIG_DOLL_GUARD = 0.25;
 const BIG_BOXES = { figureBox: 8, snackBox: 8 };
 const CHARACTERS = { ribbonCat: 4, pinkHoodRabbit: 4, blackHoodRabbit: 4, cloudPuppy: 4, beretPuppy: 4 };
-const MINI_CHARACTERS = { miniRibbonCat: 3, miniPinkHoodRabbit: 3, miniBlackHoodRabbit: 3, miniCloudPuppy: 3, miniBeretPuppy: 3 };
+const MINI_CHARACTERS = { miniRibbonCat: 5, miniPinkHoodRabbit: 5, miniBlackHoodRabbit: 5, miniCloudPuppy: 5, miniBeretPuppy: 5 };
+// 미니 인형 기계의 배출구 가드: 투명 아크릴, 누운 인형 한 개 높이쯤
+const MINI_DOLL_GUARD = 0.085;
 const SMALL_BOXES = { smallBox: 18 };
 const CAPSULES = { capsule: 20 };
 
@@ -149,10 +152,10 @@ export const PRESETS: Preset[] = [
   preset('캐릭터 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: CHARACTERS }),
   preset('큰 박스', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_BOXES }),
   preset('큰 박스', '짠물 기계', 3, REGULAR_BASE, { ...REGULAR_STINGY, prizeMix: BIG_BOXES }),
-  preset('미니 인형', '흔한 세팅', 2, MINI_BASE, {}),
+  preset('미니 인형', '흔한 세팅', 2, MINI_BASE, { guardHeight: MINI_DOLL_GUARD }),
   preset('미니 인형', '짠물 기계', 3, MINI_BASE, MINI_STINGY),
-  preset('미니 인형', '연습용 강집게', 1, MINI_BASE, STRONG),
-  preset('미니 캐릭터', '흔한 세팅', 2, MINI_BASE, { prizeMix: MINI_CHARACTERS }),
+  preset('미니 인형', '연습용 강집게', 1, MINI_BASE, { ...STRONG, guardHeight: MINI_DOLL_GUARD }),
+  preset('미니 캐릭터', '흔한 세팅', 2, MINI_BASE, { prizeMix: MINI_CHARACTERS, guardHeight: MINI_DOLL_GUARD }),
   preset('작은 박스', '흔한 세팅', 2, MINI_BASE, { prizeMix: SMALL_BOXES }),
   preset('캡슐', '흔한 세팅', 2, MINI_BASE, { prizeMix: CAPSULES }),
 ];

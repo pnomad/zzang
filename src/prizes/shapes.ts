@@ -369,33 +369,33 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
   },
   miniDoll: {
     kind: 'miniDoll', name: '미니 인형', category: 'plush', mass: 0.06, friction: 1.05, restitution: 0.05,
-    size: 0.06, stack: 0.09, machines: ['mini'], colors: [...PASTEL, ...BROWN],
+    size: 0.07, stack: 0.1, machines: ['mini'], colors: [...PASTEL, ...BROWN],
     tip: '작고 가벼워서 집게 안에 들어오기만 하면 잘 올라와요. 머리 위를 정확히 노리세요.',
-    build: (c) => bearParts(0.5, c, false),
+    build: (c) => bearParts(0.58, c, false),
   },
   miniBear: {
-    kind: 'miniBear', name: '꼬마 곰', category: 'plush', mass: 0.035, friction: 1.05, restitution: 0.05,
-    size: 0.045, stack: 0.065, machines: ['mini'], colors: BROWN,
+    kind: 'miniBear', name: '꼬마 곰', category: 'plush', mass: 0.04, friction: 1.05, restitution: 0.05,
+    size: 0.055, stack: 0.08, machines: ['mini'], colors: BROWN,
     tip: '미니 기계에서도 작은 편이라 집게 안에 쏙 들어가요. 대신 발 사이로 빠지기 쉬우니 한가운데를 노리세요.',
-    build: (c) => bearParts(0.38, c, false),
+    build: (c) => bearParts(0.46, c, false),
   },
   miniBigBear: {
-    kind: 'miniBigBear', name: '큰 미니 곰', category: 'plush', mass: 0.075, friction: 1.1, restitution: 0.04,
-    size: 0.065, stack: 0.1, machines: ['mini'], colors: [...BROWN, 0xf4a7b9],
+    kind: 'miniBigBear', name: '큰 미니 곰', category: 'plush', mass: 0.08, friction: 1.1, restitution: 0.04,
+    size: 0.075, stack: 0.11, machines: ['mini'], colors: [...BROWN, 0xf4a7b9],
     tip: '미니 기계치고 커서 집게가 다 감싸지 못해요. 팔 밑이나 목에 발을 걸어 들어 올리세요.',
-    build: (c) => bearParts(0.58, c, true), // 키 약 13cm: 미니 기계에서 제일 크지만 일반 곰(23cm)보다는 확실히 작게
+    build: (c) => bearParts(0.66, c, true), // 키 약 15cm: 미니 기계에서 제일 크지만 일반 곰(23cm)보다는 확실히 작게
   },
   miniRabbit: {
-    kind: 'miniRabbit', name: '미니 토끼', category: 'plush', mass: 0.04, friction: 1.1, restitution: 0.05,
-    size: 0.055, stack: 0.08, machines: ['mini'], colors: [0xffffff, 0xf4c2d7, 0xd9d9d9, 0xe8d5b7],
+    kind: 'miniRabbit', name: '미니 토끼', category: 'plush', mass: 0.045, friction: 1.1, restitution: 0.05,
+    size: 0.065, stack: 0.095, machines: ['mini'], colors: [0xffffff, 0xf4c2d7, 0xd9d9d9, 0xe8d5b7],
     tip: '큰 토끼처럼 귀가 걸기 포인트예요. 귀 밑에 발 하나만 들어가도 딸려 올라와요.',
-    build: (c) => scaled(0.55, PRIZES.rabbit.build)(c), // 큰 토끼 모양을 줄여서
+    build: (c) => scaled(0.65, PRIZES.rabbit.build)(c), // 큰 토끼 모양을 줄여서
   },
   miniCat: {
-    kind: 'miniCat', name: '미니 롱 고양이', category: 'plush', mass: 0.035, friction: 1.0, restitution: 0.05,
-    size: 0.075, stack: 0.05, machines: ['mini'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
+    kind: 'miniCat', name: '미니 롱 고양이', category: 'plush', mass: 0.04, friction: 1.0, restitution: 0.05,
+    size: 0.09, stack: 0.06, machines: ['mini'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
     tip: '가볍지만 길쭉해서 가운데를 잡으면 양쪽이 처져요. 머리 쪽을 노리세요.',
-    build: (c) => scaled(0.5, PRIZES.longCat.build)(c),
+    build: (c) => scaled(0.6, PRIZES.longCat.build)(c),
   },
   // ---- 캐릭터 인형 (일반) ----
   ribbonCat: {
@@ -423,31 +423,31 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
     size: 0.1, stack: 0.15, machines: ['regular'], colors: [0xf7d774],
     tip: CHAR_TIP.beret, build: () => beretPuppy(),
   },
-  // ---- 캐릭터 인형 (미니: 같은 모양을 절반 크기로) ----
+  // ---- 캐릭터 인형 (미니: 같은 모양을 0.6배로, 12~14cm 키링 인형) ----
   miniRibbonCat: {
-    kind: 'miniRibbonCat', name: '미니 리본 고양이', category: 'plush', mass: 0.035, friction: 1.1, restitution: 0.05,
-    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0x4dabf7, 0xe03131, 0xf783ac],
-    tip: CHAR_TIP.cat, build: (c) => scaled(0.5, ribbonCat)(c),
+    kind: 'miniRibbonCat', name: '미니 리본 고양이', category: 'plush', mass: 0.046, friction: 1.1, restitution: 0.05,
+    size: 0.06, stack: 0.084, machines: ['mini'], colors: [0x4dabf7, 0xe03131, 0xf783ac],
+    tip: CHAR_TIP.cat, build: (c) => scaled(0.6, ribbonCat)(c),
   },
   miniPinkHoodRabbit: {
-    kind: 'miniPinkHoodRabbit', name: '미니 분홍 두건 토끼', category: 'plush', mass: 0.032, friction: 1.1, restitution: 0.05,
-    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0xffa8c5],
-    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.5, (cc) => hoodRabbit(cc, 'pink'))(c),
+    kind: 'miniPinkHoodRabbit', name: '미니 분홍 두건 토끼', category: 'plush', mass: 0.042, friction: 1.1, restitution: 0.05,
+    size: 0.06, stack: 0.084, machines: ['mini'], colors: [0xffa8c5],
+    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.6, (cc) => hoodRabbit(cc, 'pink'))(c),
   },
   miniBlackHoodRabbit: {
-    kind: 'miniBlackHoodRabbit', name: '미니 검정 두건 토끼', category: 'plush', mass: 0.032, friction: 1.1, restitution: 0.05,
-    size: 0.05, stack: 0.07, machines: ['mini'], colors: [0x1a1a1f],
-    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.5, (cc) => hoodRabbit(cc, 'black'))(c),
+    kind: 'miniBlackHoodRabbit', name: '미니 검정 두건 토끼', category: 'plush', mass: 0.042, friction: 1.1, restitution: 0.05,
+    size: 0.06, stack: 0.084, machines: ['mini'], colors: [0x1a1a1f],
+    tip: CHAR_TIP.rabbit, build: (c) => scaled(0.6, (cc) => hoodRabbit(cc, 'black'))(c),
   },
   miniCloudPuppy: {
-    kind: 'miniCloudPuppy', name: '미니 구름 강아지', category: 'plush', mass: 0.03, friction: 1.05, restitution: 0.05,
-    size: 0.055, stack: 0.07, machines: ['mini'], colors: [0xfdfdfd],
-    tip: CHAR_TIP.puppy, build: () => scaled(0.5, cloudPuppy)(0),
+    kind: 'miniCloudPuppy', name: '미니 구름 강아지', category: 'plush', mass: 0.039, friction: 1.05, restitution: 0.05,
+    size: 0.066, stack: 0.084, machines: ['mini'], colors: [0xfdfdfd],
+    tip: CHAR_TIP.puppy, build: () => scaled(0.6, cloudPuppy)(0),
   },
   miniBeretPuppy: {
-    kind: 'miniBeretPuppy', name: '미니 베레모 강아지', category: 'plush', mass: 0.038, friction: 1.05, restitution: 0.05,
-    size: 0.05, stack: 0.075, machines: ['mini'], colors: [0xf7d774],
-    tip: CHAR_TIP.beret, build: () => scaled(0.5, beretPuppy)(0),
+    kind: 'miniBeretPuppy', name: '미니 베레모 강아지', category: 'plush', mass: 0.049, friction: 1.05, restitution: 0.05,
+    size: 0.06, stack: 0.09, machines: ['mini'], colors: [0xf7d774],
+    tip: CHAR_TIP.beret, build: () => scaled(0.6, beretPuppy)(0),
   },
   smallBox: {
     kind: 'smallBox', name: '미니 상자', category: 'box', mass: 0.035, friction: 0.38, restitution: 0.1,
