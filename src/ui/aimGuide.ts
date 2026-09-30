@@ -11,6 +11,8 @@ export class AimGuide {
   private ring: THREE.Mesh;
   private dot: THREE.Mesh;
   private line: THREE.Line;
+  /** 집게 발 세 개가 닿을 방향 (집게가 돌면 같이 돈다) */
+  private ticks = new THREE.Group();
 
   constructor(scene: THREE.Scene) {
     const mat = new THREE.MeshBasicMaterial({
@@ -26,7 +28,16 @@ export class AimGuide {
     }));
     this.line.frustumCulled = false;
     for (const o of [this.ring, this.dot, this.line]) o.renderOrder = 998;
-    this.group.add(this.ring, this.dot, this.line);
+    // 발 방향 눈금: 원 둘레에서 안쪽으로 짧은 막대 (claw.ts의 발 배치와 같은 각도)
+    for (let i = 0; i < 3; i++) {
+      const phi = (i / 3) * Math.PI * 2 + Math.PI / 2;
+      const tick = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.07), mat);
+      tick.rotation.set(-Math.PI / 2, 0, -phi);
+      tick.position.set(Math.cos(phi) * 0.86, 0, Math.sin(phi) * 0.86);
+      tick.renderOrder = 998;
+      this.ticks.add(tick);
+    }
+    this.group.add(this.ring, this.dot, this.line, this.ticks);
     this.group.visible = false;
     scene.add(this.group);
   }
@@ -54,6 +65,9 @@ export class AimGuide {
     this.ring.position.set(t.x, surf, t.z);
     this.ring.scale.setScalar(r);
     this.dot.position.set(t.x, surf, t.z);
+    this.ticks.position.set(t.x, surf + 0.0005, t.z);
+    this.ticks.scale.setScalar(r);
+    this.ticks.rotation.y = claw.yaw();
     this.dot.scale.setScalar(claw.L * 0.05);
     const attr = this.line.geometry.getAttribute('position') as THREE.BufferAttribute;
     attr.setXYZ(0, t.x, hubY, t.z);

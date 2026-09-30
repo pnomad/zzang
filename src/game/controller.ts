@@ -3,6 +3,9 @@ import type { Rig } from './rig';
 import { drawPayoutTarget } from '../machine/settings';
 import { AttemptTracker, Recorder, type AttemptResult, type Phase } from './analysis';
 
+/** 레버 방향을 한 번 꺾을 때 집게가 도는 각도 */
+const TWIST_PER_TURN = (3 * Math.PI) / 180;
+
 export interface Input {
   right: boolean;
   up: boolean;
@@ -27,6 +30,7 @@ export class Controller {
   private pressedOnce = false;
   private dropStart = 0;
   private slackTime = 0;
+  private lastDir = { x: 0, z: 0 };
   tracker: AttemptTracker | null = null;
   readonly recorder = new Recorder();
   onResult: (r: AttemptResult) => void = () => {};
@@ -68,6 +72,7 @@ export class Controller {
       (x, z) => this.zoneFactor(x, z));
     this.recorder.begin(this.rig.synced);
     this.timeLeft = s.timeLimit;
+    this.lastDir = { x: 0, z: 0 };
     this.go(s.controlMode === 'twoButton' ? 'moveX' : 'move');
     return true;
   }
@@ -126,6 +131,12 @@ export class Controller {
         const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         const dz = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         gantry.drive(dx, dz, s.moveSpeed, dt);
+        // 레버를 한쪽으로 돌리듯 방향을 꺾으면 집게가 그쪽으로 조금 돈다 (앞뒤로만 흔들면 안 돎)
+        if (dx || dz) {
+          const cross = this.lastDir.x * dz - this.lastDir.z * dx;
+          if (cross) claw.twist(-Math.sign(cross) * TWIST_PER_TURN);
+          this.lastDir = { x: dx, z: dz };
+        }
         if (input.drop) this.go('drop');
         break;
       }

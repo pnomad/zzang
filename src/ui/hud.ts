@@ -326,6 +326,21 @@ export class Hud {
     requestAnimationFrame(() => drawChart(canvas, r, opts.real));
   }
 
+  /** 화면 가운데 위에 잠깐 뜨는 안내 */
+  toast(text: string) {
+    if (!this.toastEl) {
+      this.toastEl = el('div', 'hud card');
+      this.toastEl.id = 'toast';
+      this.resultEl.parentElement!.append(this.toastEl);
+    }
+    this.toastEl.textContent = text;
+    this.toastEl.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => this.toastEl?.classList.remove('show'), 1600);
+  }
+  private toastEl: HTMLElement | null = null;
+  private toastTimer = 0;
+
   hideResult() { this.resultEl.classList.remove('show'); }
   get resultOpen() { return this.resultEl.classList.contains('show'); }
 

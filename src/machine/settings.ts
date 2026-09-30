@@ -7,7 +7,8 @@ export type ControlMode = 'twoButton' | 'joystick';
 export type PrizeKind =
   | 'bear' | 'rabbit' | 'cushion' | 'longCat' | 'bigBear'
   | 'figureBox' | 'snackBox' | 'keyring'
-  | 'miniDoll' | 'smallBox' | 'capsule';
+  | 'miniDoll' | 'miniBear' | 'miniBigBear' | 'miniRabbit' | 'miniCat'
+  | 'smallBox' | 'capsule';
 
 /** 기계 크기별 고정 치수 (m). 세팅 패널에서 바꾸지 않는 값. */
 export interface MachineGeometry {
@@ -85,7 +86,7 @@ const REGULAR_BASE: MachineSettings = {
   nearChutePower: 55,
   payoutMode: 'everyN',
   payoutN: 20,
-  payoutSpread: 25,
+  payoutSpread: 0,
   payoutAmount: 20000,
   strongPower: 100,
   moveSpeed: 0.22,
@@ -114,7 +115,8 @@ const MINI_BASE: MachineSettings = {
   payoutN: 20,
   payoutAmount: 10000,
   price: 500,
-  prizeMix: { miniDoll: 10, keyring: 6 },
+  // 미니 인형 기계도 크기가 제각각인 인형이 섞여 있다
+  prizeMix: { miniDoll: 4, miniBear: 4, miniBigBear: 2, miniRabbit: 3, miniCat: 2, keyring: 3 },
 };
 
 /** difficulty: 1 쉬움 ~ 3 어려움. 오락실 기계 위 간판에 표시된다. */
@@ -125,18 +127,21 @@ const STRONG = { grabPower: 100, liftPower: 100, topPower: 100, returnPower: 100
 const REGULAR_STINGY = { liftPower: 30, topPower: 12, returnPower: 10, payoutN: 30, payoutAmount: 30000, guardHeight: 0.11, nearChuteRange: 0.28, nearChutePower: 35 };
 const MINI_STINGY = { liftPower: 32, topPower: 14, returnPower: 12, payoutN: 30, payoutAmount: 15000, guardHeight: 0.05, nearChuteRange: 0.14, nearChutePower: 35 };
 const BIG_DOLLS = { bigBear: 3, longCat: 4 };
+// 큰 인형 기계는 배출구 가드가 인형 몸 높이(놓인 상태 약 22.5cm)보다 10% 높다: 밀어 넣기는 안 되고 들어서 넘겨야 한다
+const BIG_DOLL_GUARD = 0.25;
 const BIG_BOXES = { figureBox: 8, snackBox: 8 };
 const SMALL_BOXES = { smallBox: 18 };
 const CAPSULES = { capsule: 20 };
 
+// 강집게 주기 무작위(±25%)는 쉬움 기계에만. 나머지는 연습하기 좋게 정확히 N판마다
 const preset = (title: string, level: string, difficulty: Preset['difficulty'], base: MachineSettings, over: Partial<MachineSettings>): Preset =>
-  ({ name: `${title} - ${level}`, title, difficulty, settings: { ...base, ...over } });
+  ({ name: `${title} - ${level}`, title, difficulty, settings: { ...base, payoutSpread: difficulty === 1 ? 25 : 0, ...over } });
 
 export const PRESETS: Preset[] = [
   preset('일반 인형', '흔한 세팅', 2, REGULAR_BASE, {}),
   preset('일반 인형', '짠물 기계', 3, REGULAR_BASE, REGULAR_STINGY),
   preset('일반 인형', '연습용 강집게', 1, REGULAR_BASE, STRONG),
-  preset('큰 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_DOLLS }),
+  preset('큰 인형', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_DOLLS, guardHeight: BIG_DOLL_GUARD }),
   preset('큰 박스', '흔한 세팅', 2, REGULAR_BASE, { prizeMix: BIG_BOXES }),
   preset('큰 박스', '짠물 기계', 3, REGULAR_BASE, { ...REGULAR_STINGY, prizeMix: BIG_BOXES }),
   preset('미니 인형', '흔한 세팅', 2, MINI_BASE, {}),

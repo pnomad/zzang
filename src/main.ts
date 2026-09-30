@@ -50,7 +50,7 @@ orbit.enabled = false;
 // ---------- 저장된 설정 ----------
 const panelState: PanelState = { real: false, presetIndex: 0, showCom: false, showAim: true, showZone: true };
 // 연습 모드 세팅은 기계마다 저장한다 (실전 모드 기계는 매번 새로 뽑으므로 저장하지 않음)
-const SETTINGS_KEY = 'clawsim-settings-v6';
+const SETTINGS_KEY = 'clawsim-settings-v8';
 type Saved = { showCom: boolean; showAim: boolean; showZone: boolean; muted: boolean; machines: Record<string, MachineSettings> };
 let saved: Partial<Saved> = {};
 try {
@@ -226,7 +226,8 @@ function attachMachine() {
 }
 
 function leaveMachine() {
-  if (sceneMode !== 'play' || !cur || ctrl?.busy) return;
+  if (sceneMode !== 'play' || !cur) return;
+  if (ctrl?.busy) { hud.toast('이번 판이 끝나면 나갈 수 있어요'); return; }
   exitReplay();
   hud.hideResult();
   sceneMode = 'lobby';
@@ -432,8 +433,8 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'v' || e.key === 'V' || e.key === 'ㅍ') cycleView();
   else if (e.key === 'r' || e.key === 'R' || e.key === 'ㄱ') startReplay();
   else if (e.key === 'Escape') {
+    // 리플레이 중이면 리플레이만 닫고, 아니면 바로 오락실로 나간다 (판 진행 중에는 못 나감)
     if (replay.active) exitReplay();
-    else if (hud.resultOpen) hud.hideResult();
     else leaveMachine();
   }
 });

@@ -118,6 +118,22 @@ function ringParts(r: number, tube: number, color: number): Part[] {
   return out;
 }
 
+/** 인형 모양을 통째로 k배로 줄이거나 키운다 (부위 위치·크기·관절 위치 모두) */
+function scaled(k: number, build: (c: number) => { parts: Part[]; limbs: LimbDef[] }) {
+  const part = (p: Part): Part => {
+    const sh = { ...p.shape } as Record<string, number | string>;
+    for (const key of Object.keys(sh)) if (typeof sh[key] === 'number') sh[key] = (sh[key] as number) * k;
+    return { ...p, shape: sh as unknown as Part['shape'], pos: p.pos && (p.pos.map((v) => v * k) as V3) };
+  };
+  return (c: number) => {
+    const b = build(c);
+    return {
+      parts: b.parts.map(part),
+      limbs: b.limbs.map((l) => ({ ...l, anchor: l.anchor.map((v) => v * k) as V3, parts: l.parts.map(part) })),
+    };
+  };
+}
+
 const PASTEL = [0xf4a7b9, 0xa7d8f4, 0xf9e79f, 0xc3aed6, 0xa8e6cf, 0xffd3b6];
 const BROWN = [0xa9744f, 0xd2a679, 0x8b5a3c, 0xf5f0e6];
 
@@ -233,6 +249,30 @@ export const PRIZES: Record<PrizeKind, PrizeDef> = {
     size: 0.06, stack: 0.09, machines: ['mini'], colors: [...PASTEL, ...BROWN],
     tip: '작고 가벼워서 집게 안에 들어오기만 하면 잘 올라와요. 머리 위를 정확히 노리세요.',
     build: (c) => bearParts(0.5, c, false),
+  },
+  miniBear: {
+    kind: 'miniBear', name: '꼬마 곰', category: 'plush', mass: 0.035, friction: 1.05, restitution: 0.05,
+    size: 0.045, stack: 0.065, machines: ['mini'], colors: BROWN,
+    tip: '미니 기계에서도 작은 편이라 집게 안에 쏙 들어가요. 대신 발 사이로 빠지기 쉬우니 한가운데를 노리세요.',
+    build: (c) => bearParts(0.38, c, false),
+  },
+  miniBigBear: {
+    kind: 'miniBigBear', name: '큰 미니 곰', category: 'plush', mass: 0.11, friction: 1.1, restitution: 0.04,
+    size: 0.08, stack: 0.12, machines: ['mini'], colors: [...BROWN, 0xf4a7b9],
+    tip: '미니 기계치고 커서 집게가 다 감싸지 못해요. 팔 밑이나 목에 발을 걸어 들어 올리세요.',
+    build: (c) => bearParts(0.72, c, true),
+  },
+  miniRabbit: {
+    kind: 'miniRabbit', name: '미니 토끼', category: 'plush', mass: 0.04, friction: 1.1, restitution: 0.05,
+    size: 0.055, stack: 0.08, machines: ['mini'], colors: [0xffffff, 0xf4c2d7, 0xd9d9d9, 0xe8d5b7],
+    tip: '큰 토끼처럼 귀가 걸기 포인트예요. 귀 밑에 발 하나만 들어가도 딸려 올라와요.',
+    build: (c) => scaled(0.55, PRIZES.rabbit.build)(c), // 큰 토끼 모양을 줄여서
+  },
+  miniCat: {
+    kind: 'miniCat', name: '미니 롱 고양이', category: 'plush', mass: 0.035, friction: 1.0, restitution: 0.05,
+    size: 0.075, stack: 0.05, machines: ['mini'], colors: [0x444444, 0xf5f0e6, 0xf2a65a, 0x9e9e9e],
+    tip: '가볍지만 길쭉해서 가운데를 잡으면 양쪽이 처져요. 머리 쪽을 노리세요.',
+    build: (c) => scaled(0.5, PRIZES.longCat.build)(c),
   },
   smallBox: {
     kind: 'smallBox', name: '미니 상자', category: 'box', mass: 0.035, friction: 0.38, restitution: 0.1,

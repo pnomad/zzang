@@ -153,13 +153,15 @@ function shuffle<T>(a: T[]) {
 /** 경품 구성에 맞춘 기본 집게 대기 높이: 쌓였을 때 한 개 두께(평균) × 2.5 */
 function idleTipHeight(s: MachineSettings): number {
   const sc = GEOMETRY[s.kind].width / 0.8;
-  let sum = 0, n = 0;
+  let sum = 0, n = 0, biggest = 0;
   for (const [kind, count] of Object.entries(s.prizeMix) as [PrizeKind, number][]) {
     if (!count || !PRIZES[kind].machines.includes(s.kind)) continue;
     sum += PRIZES[kind].stack * count;
     n += count;
+    biggest = Math.max(biggest, PRIZES[kind].stack);
   }
   const stack = n ? sum / n : 0.15 * sc;
-  // 너무 납작한 경품만 있어도 이동 중 더미에 걸리지 않을 만큼은 띄운다
-  return Math.max(2.5 * stack, 0.3 * sc);
+  // 너무 납작한 경품만 있어도 이동 중 더미에 걸리지 않을 만큼은 띄우고,
+  // 가드가 높은 기계는 집어 든 경품이 가드를 넘어갈 만큼 올라가야 한다
+  return Math.max(2.5 * stack, 0.3 * sc, s.guardHeight + 0.9 * biggest);
 }

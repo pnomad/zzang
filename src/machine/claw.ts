@@ -38,6 +38,8 @@ export class Claw {
   private readonly swingStiff: number;
   private readonly hangMass: number;
   private cableLength: number;
+  /** 집게가 향할 방향 (수직축 회전, rad). 레버를 돌리면 조금씩 바뀐다 */
+  targetYaw = 0;
 
   /** 현재 명령: 닫기 여부와 힘(0~1) */
   closing = false;
@@ -219,13 +221,36 @@ export class Claw {
     const w = toVec(this.cable.angvel());
     const wSwing = w.sub(d.clone().multiplyScalar(w.dot(d)));
     const tau = d.clone().cross(down).multiplyScalar(k).addScaledVector(wSwing, -2 * Math.sqrt(k * inertia));
-    this.cable.resetTorques(false);
     this.cable.addTorque(tau, true);
+  }
+
+  /** 집게가 지금 향한 방향 (수직축 회전, rad) */
+  yaw(): number {
+    const v = new THREE.Vector3(1, 0, 0).applyQuaternion(toQuat(this.hub.rotation()));
+    return Math.atan2(-v.z, v.x);
+  }
+
+  /** 레버를 돌릴 때 집게 방향을 조금 돌린다 */
+  twist(delta: number) {
+    this.targetYaw = THREE.MathUtils.clamp(this.targetYaw + delta, -Math.PI / 2, Math.PI / 2);
+  }
+
+  /** 집게가 목표 방향으로 천천히 돌아가게 (줄 꼬임처럼 살짝 출렁이며) */
+  private holdYaw() {
+    const inertia = this.hangMass * this.hubR * this.hubR * 0.6;
+    const k = inertia * (Math.PI * 2 / 0.6) ** 2;
+    let err = this.targetYaw - this.yaw();
+    err = Math.atan2(Math.sin(err), Math.cos(err));
+    const tau = k * err - 2 * Math.sqrt(k * inertia) * 0.6 * this.cable.angvel().y;
+    this.cable.addTorque({ x: 0, y: tau, z: 0 }, true);
   }
 
   /** 매 물리 스텝 전에 호출: 발 토크 적용 */
   preStep() {
+    // 줄에 주는 힘은 매 스텝 새로 계산한다 (Rapier는 힘을 지우기 전까지 계속 준다)
+    this.cable.resetTorques(false);
     this.holdVertical();
+    this.holdYaw();
     const qHub = toQuat(this.hub.rotation());
     const qInv = qHub.clone().invert();
     const wHub = toVec(this.hub.angvel());

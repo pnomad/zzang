@@ -99,7 +99,7 @@ export class Panel {
     motion.close();
 
     const struct = gui.addFolder('구조 (적용 버튼 필요)');
-    const gMax = s.kind === 'regular' ? 0.2 : 0.1;
+    const gMax = s.kind === 'regular' ? 0.4 : 0.15;
     struct.add(s, 'guardHeight', 0, gMax, 0.005).name('배출구 가드 높이 (m)');
     struct.add(s, 'ceilingScale', 0.6, 2, 0.05).name('집게 대기 높이 (경품 2.5개 = 1)');
     struct.add(s, 'prongScale', 0.7, 1.4, 0.01).name('집게 발 길이 배율');
