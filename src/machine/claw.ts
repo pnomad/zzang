@@ -35,6 +35,8 @@ export class Claw {
   private readonly kp: number;
   private readonly kd: number;
   private readonly openAngle: number;
+  private readonly swingStiff: number;
+  private readonly hangMass: number;
   private cableLength: number;
 
   /** 현재 명령: 닫기 여부와 힘(0~1) */
@@ -64,6 +66,8 @@ export class Claw {
     this.cableLength = this.lMin;
     this.fullTorque = g.fullTorque * (L / g.prongLength); // 발이 길면 같은 힘에 토크가 커짐
     this.openAngle = THREE.MathUtils.degToRad(s.openAngleDeg);
+    this.swingStiff = g.swingStiff;
+    this.hangMass = g.hubMass + 3 * g.fingerMass;
 
     const fingerInertia = g.fullTorque / 120;
     this.kp = g.fullTorque / 0.08;
@@ -200,8 +204,28 @@ export class Claw {
     return a;
   }
 
+  /**
+   * 미니 기계: 짧은 줄에 거의 고정된 집게처럼, 줄을 수직으로 되돌리는 힘(+감쇠)을 준다.
+   * 갠트리가 급하게 서도 기울기가 1~2° 안에서 바로 잡힌다.
+   */
+  private holdVertical() {
+    if (this.swingStiff <= 0) return;
+    const down = new THREE.Vector3(0, -1, 0);
+    const d = down.clone().applyQuaternion(toQuat(this.cable.rotation()));
+    const len = this.cableLength + this.hubHH;
+    const k = this.swingStiff * this.hangMass * 9.81 * len;
+    const inertia = this.hangMass * len * len;
+    // 줄 방향을 수직으로 돌리는 축 × 기울기(sin), 줄 축 둘레의 회전은 건드리지 않는다
+    const w = toVec(this.cable.angvel());
+    const wSwing = w.sub(d.clone().multiplyScalar(w.dot(d)));
+    const tau = d.clone().cross(down).multiplyScalar(k).addScaledVector(wSwing, -2 * Math.sqrt(k * inertia));
+    this.cable.resetTorques(false);
+    this.cable.addTorque(tau, true);
+  }
+
   /** 매 물리 스텝 전에 호출: 발 토크 적용 */
   preStep() {
+    this.holdVertical();
     const qHub = toQuat(this.hub.rotation());
     const qInv = qHub.clone().invert();
     const wHub = toVec(this.hub.angvel());

@@ -20,17 +20,18 @@ export interface MachineGeometry {
   hubMass: number;
   fingerMass: number;
   moveAccel: number;   // 갠트리 가감속 (m/s²)
-  moveSmooth: number;  // 가속도를 올리고 내리는 시간 (s). 0이면 급출발·급정지 (줄이 잘 흔들림)
+  moveSmooth: number;  // 가속도를 올리고 내리는 시간 (s). 0이면 급출발·급정지
+  swingStiff: number;  // 집게를 수직으로 되돌리는 힘 (중력의 몇 배). 0이면 그냥 매달린 진자 (잘 흔들림)
 }
 
 export const GEOMETRY: Record<MachineKind, MachineGeometry> = {
   regular: {
     width: 0.8, depth: 0.7, height: 0.95, chuteSize: 0.24,
-    prongLength: 0.13, fullTorque: 0.8, hubMass: 0.6, fingerMass: 0.03, moveAccel: 1.0, moveSmooth: 0,
+    prongLength: 0.13, fullTorque: 0.8, hubMass: 0.6, fingerMass: 0.03, moveAccel: 1.0, moveSmooth: 0, swingStiff: 0,
   },
   mini: {
     width: 0.42, depth: 0.38, height: 0.5, chuteSize: 0.13,
-    prongLength: 0.065, fullTorque: 0.07, hubMass: 0.12, fingerMass: 0.006, moveAccel: 0.22, moveSmooth: 0.5,
+    prongLength: 0.065, fullTorque: 0.07, hubMass: 0.12, fingerMass: 0.006, moveAccel: 0.8, moveSmooth: 0, swingStiff: 10,
   },
 };
 
@@ -107,7 +108,7 @@ const MINI_BASE: MachineSettings = {
   dropSpeed: 0.2,
   liftSpeed: 0.17,
   nearChuteRange: 0.1,
-  swingDamping: 12,        // 미니는 줄이 짧고 집게가 가벼워 거의 안 흔들린다 (1~2° 이내)
+  swingDamping: 12,        // 미니는 줄이 짧고 집게가 거의 고정되어 있어 거의 안 흔들린다 (1~2° 이내)
   payoutN: 8,
   payoutAmount: 8000,
   price: 500,
